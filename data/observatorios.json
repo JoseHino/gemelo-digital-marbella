@@ -1,5 +1,5 @@
 {
- "actualizado": "2026-10-02T08:33Z",
+ "actualizado": "2026-10-02T08:42Z",
  "observatorios": [
   {
    "nombre": "Mapa de VUT",
@@ -20,7 +20,7 @@
    ],
    "id": "vut",
    "ok": true,
-   "comprobado": "2026-10-02T08:33Z"
+   "comprobado": "2026-10-02T08:42Z"
   },
   {
    "nombre": "Observatorio Turístico",
@@ -41,7 +41,7 @@
    ],
    "id": "turismo",
    "ok": true,
-   "comprobado": "2026-10-02T08:33Z"
+   "comprobado": "2026-10-02T08:42Z"
   },
   {
    "nombre": "Dashboard DTI",
@@ -98,7 +98,7 @@
    ],
    "id": "dti",
    "ok": true,
-   "comprobado": "2026-10-02T08:33Z"
+   "comprobado": "2026-10-02T08:42Z"
   },
   {
    "nombre": "Observatorio de Tráfico",
@@ -125,7 +125,7 @@
    ],
    "id": "trafico",
    "ok": true,
-   "comprobado": "2026-10-02T08:33Z"
+   "comprobado": "2026-10-02T08:42Z"
   },
   {
    "nombre": "Observatorio Ambiental",
@@ -158,7 +158,7 @@
    ],
    "id": "ambiental",
    "ok": true,
-   "comprobado": "2026-10-02T08:33Z"
+   "comprobado": "2026-10-02T08:42Z"
   },
   {
    "nombre": "Observatorio de Residuos",
@@ -173,7 +173,7 @@
    ],
    "id": "residuos",
    "ok": true,
-   "comprobado": "2026-10-02T08:33Z"
+   "comprobado": "2026-10-02T08:42Z"
   }
  ]
 }
