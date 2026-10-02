@@ -12,6 +12,18 @@ const $ = id => document.getElementById(id);
 const pm = new pmtiles.Protocol();
 maplibregl.addProtocol('pmtiles', pm.tile);
 const pmUrl = f => 'pmtiles://' + new URL(f, location.href).href;
+
+// Relieve: teselas propias tierra-mar (data/relieve.pmtiles) en Marbella y su costa; fuera de esa zona,
+// Terrain Tiles de AWS (sin ellas el terreno se queda en blanco al alejarse).
+const relievePm = new pmtiles.PMTiles(new URL('data/relieve.pmtiles', location.href).href);
+maplibregl.addProtocol('relieve', async (params, abort) => {
+  const [z, x, y] = params.url.replace('relieve://', '').split('/').map(Number);
+  const t = await relievePm.getZxy(z, x, y, abort.signal);
+  if (t && t.data) return { data: t.data };
+  const r = await fetch(`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`, { signal: abort.signal });
+  if (!r.ok) throw new Error(`Relieve ${z}/${x}/${y}: ${r.status}`);
+  return { data: await r.arrayBuffer() };
+});
 const wmts = (capa, srv, fmtImg = 'image/jpeg') =>
   `https://www.ign.es/wmts/${srv}?layer=${capa}&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=${fmtImg}&TileMatrix={z}&TileCol={x}&TileRow={y}`;
 
@@ -26,7 +38,7 @@ const map = new maplibregl.Map({
       orto: { type: 'raster', tiles: [wmts('OI.OrthoimageCoverage', 'pnoa-ma')], tileSize: 256, maxzoom: 19, attribution: 'Ortofoto PNOA © IGN' },
       base: { type: 'raster', tiles: [wmts('IGNBaseTodo', 'ign-base')], tileSize: 256, maxzoom: 19, attribution: 'Mapa base © IGN' },
       // relieve continuo tierra-mar: Terrain Tiles en tierra + batimetría de EMODnet en el mar (scripts/construir_batimetria.py)
-      dem: { type: 'raster-dem', url: pmUrl('data/relieve.pmtiles'), encoding: 'terrarium', tileSize: 256,
+      dem: { type: 'raster-dem', tiles: ['relieve://{z}/{x}/{y}'], encoding: 'terrarium', tileSize: 256, maxzoom: 14,
              attribution: 'Relieve: Mapzen/AWS Terrain Tiles · Batimetría: EMODnet' },
       bati: { type: 'raster', url: pmUrl('data/batimetria.pmtiles'), tileSize: 256 },
       isob: { type: 'geojson', data: 'data/capas/isobatas.geojson' },
