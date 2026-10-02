@@ -1,0 +1,179 @@
+{
+ "actualizado": "2026-10-02T08:33Z",
+ "observatorios": [
+  {
+   "nombre": "Mapa de VUT",
+   "url": "https://josehino.github.io/mapa-vut-marbella/",
+   "kpis": [
+    {
+     "etiqueta": "Viviendas de uso turístico",
+     "valor": 15456.0,
+     "unidad": "",
+     "periodo": "2026-10-02"
+    },
+    {
+     "etiqueta": "Plazas en VUT",
+     "valor": 90174.0,
+     "unidad": "",
+     "periodo": "2026-10-02"
+    }
+   ],
+   "id": "vut",
+   "ok": true,
+   "comprobado": "2026-10-02T08:33Z"
+  },
+  {
+   "nombre": "Observatorio Turístico",
+   "url": "https://josehino.github.io/observatorio-turistico-marbella/",
+   "kpis": [
+    {
+     "etiqueta": "Viajeros (último mes)",
+     "valor": 103765.0,
+     "unidad": "",
+     "periodo": "2026-05"
+    },
+    {
+     "etiqueta": "Pernoctaciones (último mes)",
+     "valor": 361637.0,
+     "unidad": "",
+     "periodo": "2026-05"
+    }
+   ],
+   "id": "turismo",
+   "ok": true,
+   "comprobado": "2026-10-02T08:33Z"
+  },
+  {
+   "nombre": "Dashboard DTI",
+   "url": "https://josehino.github.io/dashboard-dti-marbella/",
+   "kpis": [
+    {
+     "etiqueta": "Viajeros alojados",
+     "valor": 711877.0,
+     "unidad": "",
+     "periodo": "2025"
+    },
+    {
+     "etiqueta": "Pernoctaciones",
+     "valor": 2521602.0,
+     "unidad": "",
+     "periodo": "2025"
+    },
+    {
+     "etiqueta": "Plazas turísticas",
+     "valor": 121703.0,
+     "unidad": "",
+     "periodo": "2025"
+    },
+    {
+     "etiqueta": "Tasa de paro",
+     "valor": 23.2,
+     "unidad": "%",
+     "periodo": "2020"
+    },
+    {
+     "etiqueta": "Afiliados a la S. Social",
+     "valor": 74962.0,
+     "unidad": "",
+     "periodo": "2023"
+    },
+    {
+     "etiqueta": "Tasa de criminalidad",
+     "valor": 86.8,
+     "unidad": "‰",
+     "periodo": "2024"
+    },
+    {
+     "etiqueta": "Residuos reciclados",
+     "valor": 12.2,
+     "unidad": "%",
+     "periodo": "2025"
+    },
+    {
+     "etiqueta": "Eventos deportivos",
+     "valor": 131.0,
+     "unidad": "",
+     "periodo": "2025"
+    }
+   ],
+   "id": "dti",
+   "ok": true,
+   "comprobado": "2026-10-02T08:33Z"
+  },
+  {
+   "nombre": "Observatorio de Tráfico",
+   "url": "https://josehino.github.io/observatorio-trafico-marbella/",
+   "kpis": [
+    {
+     "etiqueta": "Parque de vehículos",
+     "valor": 138266.0,
+     "unidad": "",
+     "periodo": "2025"
+    },
+    {
+     "etiqueta": "Conductores",
+     "valor": 87309.0,
+     "unidad": "",
+     "periodo": "2025"
+    },
+    {
+     "etiqueta": "Fallecidos en accidente",
+     "valor": 2.0,
+     "unidad": "",
+     "periodo": "2024"
+    }
+   ],
+   "id": "trafico",
+   "ok": true,
+   "comprobado": "2026-10-02T08:33Z"
+  },
+  {
+   "nombre": "Observatorio Ambiental",
+   "url": "https://josehino.github.io/observatorio-ambiental-marbella/",
+   "kpis": [
+    {
+     "etiqueta": "Cobertura vegetal",
+     "valor": 62.6,
+     "unidad": "%",
+     "periodo": "2026-04"
+    },
+    {
+     "etiqueta": "Suelo sellado",
+     "valor": 13.3,
+     "unidad": "%",
+     "periodo": "2026-04"
+    },
+    {
+     "etiqueta": "Temperatura superficial",
+     "valor": 16.2,
+     "unidad": "°C",
+     "periodo": "2026-04"
+    },
+    {
+     "etiqueta": "Absorción de CO₂",
+     "valor": 8126.0,
+     "unidad": "TNCO2/mes",
+     "periodo": "2026-04"
+    }
+   ],
+   "id": "ambiental",
+   "ok": true,
+   "comprobado": "2026-10-02T08:33Z"
+  },
+  {
+   "nombre": "Observatorio de Residuos",
+   "url": "https://josehino.github.io/observatorio-residuos-marbella/",
+   "kpis": [
+    {
+     "etiqueta": "Residuos por habitante",
+     "valor": 517.1,
+     "unidad": "kg/hab·año",
+     "periodo": "2024"
+    }
+   ],
+   "id": "residuos",
+   "ok": true,
+   "comprobado": "2026-10-02T08:33Z"
+  }
+ ]
+}

@@ -1,0 +1,31 @@
+name: Sincronizar observatorios
+
+on:
+  schedule:
+    - cron: "45 5 * * *"      # cada día, 07:45 en Madrid (tras el mapa de VUT)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: sincronizar
+
+jobs:
+  sincronizar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Indicadores y capas de los observatorios
+        run: python -u scripts/sincronizar_observatorios.py
+      - name: Publicar si hay cambios
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898888+github-actions[bot]@users.noreply.github.com"
+          git add data/observatorios.json data/capas
+          if git diff --cached --quiet; then echo "Sin cambios"; exit 0; fi
+          git commit -m "Observatorios: sincronización $(date -u +%F)"
+          git push

@@ -49,9 +49,14 @@ cee = json.load(open(os.path.join(BASE, "data", "cee_parcela.json"), encoding="u
 
 def entero(v):
     try:
-        return int(float(v))
+        f = float(v)
+        return None if f != f else int(f)          # NaN -> None
     except (TypeError, ValueError):
         return None
+
+
+def texto(v):
+    return v if isinstance(v, str) else ""
 
 
 n = 0
@@ -60,8 +65,9 @@ with open(OUT, "w", encoding="utf8") as f:
         p = {"rc": rc, "pl": int(plantas), "h": round(int(plantas) * H_PLANTA, 1)}
         if rc in edif.index:
             e = edif.loc[rc]
-            anio = str(e["beginning"] or "")[:4]
-            p.update({"uso": USOS.get(e["currentUse"], e["currentUse"] or ""),
+            anio = texto(e["beginning"])[:4]
+            uso = texto(e["currentUse"])
+            p.update({"uso": USOS.get(uso, uso),
                       "anio": int(anio) if anio.isdigit() else None,
                       "viv": entero(e["numberOfDwellings"]), "ud": entero(e["numberOfBuildingUnits"]),
                       "sup": entero(e["value"])})
@@ -73,7 +79,7 @@ with open(OUT, "w", encoding="utf8") as f:
             return [red(x) for x in c] if isinstance(c[0], (list, tuple)) else [round(c[0], 6), round(c[1], 6)]
         g = {"type": g["type"], "coordinates": red(g["coordinates"])}
         f.write(json.dumps({"type": "Feature", "properties": {k: v for k, v in p.items() if v not in (None, "")},
-                            "geometry": g}, ensure_ascii=False, separators=(",", ":")) + "\n")
+                            "geometry": g}, ensure_ascii=False, separators=(",", ":"), allow_nan=False) + "\n")
         n += 1
 print(f"Cuerpos con plantas sobre rasante: {n} -> {OUT} ({os.path.getsize(OUT) / 1e6:.0f} MB)")
 if n < 30000:
