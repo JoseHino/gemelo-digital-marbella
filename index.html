@@ -65,6 +65,7 @@
   .letra { display:inline-block; min-width:22px; text-align:center; color:#fff; font-weight:700; border-radius:3px; padding:0 5px; }
   .cargando { position:absolute; z-index:4; left:50%; top:16px; transform:translateX(-50%); background:rgba(34,34,34,.85); color:#fff; padding:6px 12px; border-radius:16px; font-size:12px; }
   #toggle { display:none; }
+  .cota .maplibregl-popup-content { padding:5px 9px; font-size:12px; border-radius:6px; }
   @media (max-width:700px) {
     .panel { width:auto; right:12px; max-height:48%; }
     .panel.min > :not(header) { display:none; }
@@ -109,6 +110,13 @@
     <h2>Capas</h2>
     <label class="chk"><input type="checkbox" id="cOrto" checked> Ortofoto (si no, mapa base)</label>
     <label class="chk"><input type="checkbox" id="cRelieve" checked> Relieve del terreno</label>
+    <label class="chk"><input type="checkbox" id="cBati"> Fondo marino (batimetría)</label>
+    <div class="leyenda" id="leyBati" style="display:none;margin:2px 0 6px 24px">
+      <div class="grad" style="background:linear-gradient(90deg,#b6ece6,#48b5c8,#1e66a5,#14306a,#0c1a42)"></div>
+      <div class="gl"><span>0 m</span><span>15</span><span>60</span><span>300</span><span>800 m</span></div>
+      <div class="nota">Isóbatas cada 10–100 m. Pulsa en el mar para ver la profundidad.</div>
+    </div>
+    <label class="chk"><input type="checkbox" id="cExag"> Exagerar el relieve ×3</label>
     <label class="chk"><input type="checkbox" id="cCalor"> Mapa de calor de viviendas turísticas</label>
     <label class="chk"><input type="checkbox" id="cRuta"> Ruta accesible del casco antiguo</label>
   </div>

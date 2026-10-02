@@ -11,6 +11,7 @@ const $ = id => document.getElementById(id);
 // ------------------------------------------------------------------ mapa
 const pm = new pmtiles.Protocol();
 maplibregl.addProtocol('pmtiles', pm.tile);
+const pmUrl = f => 'pmtiles://' + new URL(f, location.href).href;
 const wmts = (capa, srv, fmtImg = 'image/jpeg') =>
   `https://www.ign.es/wmts/${srv}?layer=${capa}&style=default&tilematrixset=GoogleMapsCompatible&Service=WMTS&Request=GetTile&Version=1.0.0&Format=${fmtImg}&TileMatrix={z}&TileCol={x}&TileRow={y}`;
 
@@ -20,18 +21,30 @@ const map = new maplibregl.Map({
   hash: true,
   style: {
     version: 8,
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
       orto: { type: 'raster', tiles: [wmts('OI.OrthoimageCoverage', 'pnoa-ma')], tileSize: 256, maxzoom: 19, attribution: 'Ortofoto PNOA © IGN' },
       base: { type: 'raster', tiles: [wmts('IGNBaseTodo', 'ign-base')], tileSize: 256, maxzoom: 19, attribution: 'Mapa base © IGN' },
-      dem: { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
-             encoding: 'terrarium', tileSize: 256, maxzoom: 14, attribution: 'Relieve: Mapzen/AWS Terrain Tiles' },
-      edif: { type: 'vector', url: 'pmtiles://' + new URL('data/edificios.pmtiles', location.href).href,
+      // relieve continuo tierra-mar: Terrain Tiles en tierra + batimetría de EMODnet en el mar (scripts/construir_batimetria.py)
+      dem: { type: 'raster-dem', url: pmUrl('data/relieve.pmtiles'), encoding: 'terrarium', tileSize: 256,
+             attribution: 'Relieve: Mapzen/AWS Terrain Tiles · Batimetría: EMODnet' },
+      bati: { type: 'raster', url: pmUrl('data/batimetria.pmtiles'), tileSize: 256 },
+      isob: { type: 'geojson', data: 'data/capas/isobatas.geojson' },
+      edif: { type: 'vector', url: pmUrl('data/edificios.pmtiles'),
               promoteId: { edificios: 'rc' }, attribution: 'Edificios © Dirección General del Catastro' },
     },
     layers: [
       { id: 'fondo', type: 'background', paint: { 'background-color': '#dfe6ea' } },
       { id: 'orto', type: 'raster', source: 'orto' },
       { id: 'base', type: 'raster', source: 'base', layout: { visibility: 'none' } },
+      { id: 'bati', type: 'raster', source: 'bati', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } },
+      { id: 'isob', type: 'line', source: 'isob', layout: { visibility: 'none' },
+        paint: { 'line-color': '#ffffff', 'line-opacity': ['case', ['==', ['get', 'principal'], true], 0.75, 0.35],
+                 'line-width': ['case', ['==', ['get', 'principal'], true], 1.4, 0.7] } },
+      { id: 'isob-txt', type: 'symbol', source: 'isob', filter: ['==', ['get', 'principal'], true], layout: { visibility: 'none',
+          'symbol-placement': 'line', 'symbol-spacing': 420, 'text-field': ['concat', ['to-string', ['get', 'prof']], ' m'],
+          'text-font': ['Open Sans Semibold'], 'text-size': 11 },
+        paint: { 'text-color': '#ffffff', 'text-halo-color': 'rgba(10,30,70,.8)', 'text-halo-width': 1.4 } },
       { id: 'edificios', type: 'fill-extrusion', source: 'edif', 'source-layer': 'edificios', minzoom: 13,
         paint: { 'fill-extrusion-height': ['get', 'h'], 'fill-extrusion-base': 0, 'fill-extrusion-opacity': 0.92,
                  'fill-extrusion-color': '#ccc', 'fill-extrusion-vertical-gradient': true } },
@@ -93,7 +106,7 @@ document.querySelectorAll('#modos button').forEach(b => b.onclick = () => aplica
 
 // ------------------------------------------------------------------ capas
 map.on('load', () => {
-  map.setTerrain({ source: 'dem', exaggeration: 1 });
+  map.setTerrain({ source: 'dem', exaggeration: exag() });
   aplicaModo(modo);
 
   map.addSource('ruta', { type: 'geojson', data: 'data/capas/ruta_accesible.geojson' });
@@ -119,7 +132,27 @@ $('cOrto').onchange = e => {
   map.setLayoutProperty('orto', 'visibility', e.target.checked ? 'visible' : 'none');
   map.setLayoutProperty('base', 'visibility', e.target.checked ? 'none' : 'visible');
 };
-$('cRelieve').onchange = e => map.setTerrain(e.target.checked ? { source: 'dem', exaggeration: 1 } : null);
+const exag = () => $('cExag').checked ? 3 : 1;
+const relieve = () => map.setTerrain($('cRelieve').checked ? { source: 'dem', exaggeration: exag() } : null);
+$('cRelieve').onchange = relieve;
+$('cExag').onchange = relieve;
+$('cBati').onchange = e => {
+  ['bati', 'isob', 'isob-txt'].forEach(l => map.setLayoutProperty(l, 'visibility', e.target.checked ? 'visible' : 'none'));
+  $('leyBati').style.display = e.target.checked ? '' : 'none';
+  if (e.target.checked) {
+    if (!$('cRelieve').checked) { $('cRelieve').checked = true; relieve(); }
+    map.flyTo({ center: [-4.905, 36.455], zoom: 12.2, pitch: 70, bearing: 10, duration: 3000 });
+  }
+};
+
+// profundidad o cota del punto pulsado (fuera de los edificios)
+const cota = new maplibregl.Popup({ closeButton: false, className: 'cota' });
+map.on('click', e => {
+  if (!$('cBati').checked || !map.terrain || map.queryRenderedFeatures(e.point, { layers: ['edificios'] }).length) return;
+  const h = map.terrain.getElevationForLngLatZoom(e.lngLat, Math.min(14, Math.floor(map.getZoom()))) / exag();
+  if (h == null || isNaN(h)) return;
+  cota.setLngLat(e.lngLat).setHTML(h < 0 ? `Profundidad ≈ <b>${fmt(Math.round(-h))} m</b>` : `Cota ≈ <b>${fmt(Math.round(h))} m</b>`).addTo(map);
+});
 $('cRuta').onchange = e => {
   ['ruta-linea', 'ruta-pois'].forEach(l => map.setLayoutProperty(l, 'visibility', e.target.checked ? 'visible' : 'none'));
   if (e.target.checked) map.flyTo({ center: [-4.8852, 36.5108], zoom: 17, pitch: 55 });
@@ -222,7 +255,7 @@ function fuentes(r) {
   return `<b>Fuentes oficiales.</b> Edificios: <a target="_blank" href="https://www.catastro.hacienda.gob.es/webinspire/index.html">Catastro, INSPIRE</a>${r.fecha_catastro ? ` (base del ${r.fecha_catastro.split('-').reverse().join('/')})` : ''}; altura estimada a 3 m por planta.
     Viviendas turísticas: <a target="_blank" href="${GH}/mapa-vut-marbella/">Registro de Turismo de Andalucía</a>, a diario.
     Eficiencia energética: registro andaluz de certificados energéticos, por parcela.
-    Ortofoto y mapa base: IGN. Relieve: Terrain Tiles (AWS).
+    Ortofoto y mapa base: IGN. Relieve: Terrain Tiles (AWS). Batimetría: <a target="_blank" href="https://emodnet.ec.europa.eu/en/bathymetry">EMODnet</a> (DTM europeo, celda ~100 m).
     Indicadores: observatorios municipales de Marbella, sincronizados cada día.`;
 }
 
