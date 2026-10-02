@@ -2,7 +2,8 @@ name: Sincronizar observatorios
 
 on:
   schedule:
-    - cron: "45 5 * * *"      # cada día, 07:45 en Madrid (tras el mapa de VUT)
+    - cron: "47 5 * * *"      # cada día, 07:47 en Madrid (tras el mapa de VUT)
+    - cron: "17 13 * * *"     # segunda pasada, 15:17: cubre si GitHub se salta la primera
   workflow_dispatch:
 
 permissions:
