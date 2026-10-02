@@ -10,6 +10,8 @@ Toda Marbella en 3D con datos oficiales abiertos, más los indicadores de los ob
 - **Ficha de cada edificio** (clic): uso, año, plantas, viviendas, superficie, VUT, certificado energético, foto de fachada del Catastro y enlaces.
 - **Fondo marino**: relieve continuo tierra-mar (el mar deja de ser plano), fondo coloreado por profundidad, isóbatas (10–800 m), profundidad al pulsar en el mar y opción de exagerar el relieve ×3.
 - **Capas**: mapa de calor de VUT y Ruta Accesible del casco antiguo.
+- **Ahora en Marbella** (en vivo, cada 15 min, desde el navegador): temperatura, viento (levante/poniente), oleaje, temperatura del agua, calidad del aire e índice UV, de [Open-Meteo](https://open-meteo.com/) (sin clave).
+- **Simulación de subida del nivel del mar**: deslizador de 0 a 5 m y escenarios de 2100 (IPCC AR6), con el agua sobre el relieve y el recuento de edificios, viviendas y VUT afectados en la vista. Modelo de "bañera" calculado en el navegador a partir de `data/relieve.pmtiles` (protocolo `inunda://` en `app.js`): orientativo, no delimita zonas de riesgo.
 - **Indicadores de los observatorios**: VUT, Turístico, Dashboard DTI, Tráfico, Ambiental y Residuos, con enlace a cada uno.
 
 ## Actualización (todo en GitHub Actions)
