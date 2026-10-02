@@ -40,7 +40,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898888+github-actions[bot]@users.noreply.github.com"
-          git add data/edificios.pmtiles
+          git add data/edificios.pmtiles data/resumen_base.json
           git diff --cached --quiet && exit 0
           git commit -m "Base 3D: edificios del Catastro $(date -u +%F)"
           git push

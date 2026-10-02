@@ -1,1 +1,133 @@
-<!doctype html><meta charset=utf-8><title>Gemelo Digital Marbella</title><p>En construcción
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gemelo Digital Marbella</title>
+<meta name="description" content="Gemelo digital de Marbella: todos los edificios en 3D (Catastro) con capas de uso, antigüedad, viviendas, viviendas turísticas y eficiencia energética, e indicadores de los observatorios municipales.">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/pmtiles@3.2.1/dist/pmtiles.js"></script>
+<style>
+  :root { --ink:#222; --muted:#646b73; --line:#e3e6ea; --bg:#fff; --soft:#f5f7f9; --acc:#1044CD; --acc2:#1ADEB1; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; font-family:"Segoe UI", system-ui, Arial, sans-serif; color:var(--ink); background:#dfe6ea; }
+  #map { position:absolute; inset:0; }
+  .panel { position:absolute; z-index:2; top:12px; left:12px; width:340px; max-height:calc(100% - 24px); overflow:auto;
+           background:rgba(255,255,255,.97); border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.18); font-size:13px; }
+  .panel header { padding:14px 16px 10px; border-bottom:1px solid var(--line); position:sticky; top:0; background:inherit; z-index:1; }
+  .panel h1 { font-size:18px; margin:0; letter-spacing:-.01em; }
+  .panel h1 span { color:var(--acc); }
+  .sub { color:var(--muted); font-size:12px; margin-top:2px; }
+  .sec { padding:12px 16px; border-bottom:1px solid var(--line); }
+  .sec h2 { font-size:11px; text-transform:uppercase; letter-spacing:.07em; color:var(--muted); margin:0 0 8px; font-weight:600; }
+  .kpis { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .kpi { border-left:3px solid var(--acc2); padding-left:8px; }
+  .kpi b { display:block; font-size:17px; font-variant-numeric:tabular-nums; }
+  .kpi span { font-size:11px; color:var(--muted); }
+  .modos { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+  .modos button { border:1px solid var(--line); background:#fff; border-radius:6px; padding:6px 4px; font:inherit; font-size:12px; cursor:pointer; color:var(--ink); }
+  .modos button.on { background:var(--acc); border-color:var(--acc); color:#fff; }
+  .leyenda { margin-top:10px; font-size:11px; color:var(--muted); }
+  .leyenda .grad { height:10px; border-radius:5px; margin:4px 0 2px; }
+  .leyenda .gl { display:flex; justify-content:space-between; }
+  .leyenda .cat { display:flex; flex-wrap:wrap; gap:4px 10px; }
+  .leyenda .cat i { display:inline-block; width:11px; height:11px; border-radius:2px; vertical-align:-1px; margin-right:4px; }
+  .leyenda .nota { margin-top:5px; line-height:1.4; }
+  label.chk { display:flex; align-items:center; gap:7px; margin:5px 0; cursor:pointer; }
+  .fila { display:flex; gap:5px; flex-wrap:wrap; }
+  .fila button { border:1px solid var(--line); background:#fff; border-radius:14px; padding:3px 9px; font:inherit; font-size:11.5px; cursor:pointer; }
+  .fila button:hover { border-color:var(--acc); color:var(--acc); }
+  .obs { border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:7px; }
+  .obs .t { display:flex; justify-content:space-between; align-items:baseline; gap:6px; margin-bottom:4px; }
+  .obs .t a { font-weight:600; color:var(--ink); text-decoration:none; }
+  .obs .t a:hover { color:var(--acc); }
+  .obs .t small { color:var(--muted); font-size:10.5px; white-space:nowrap; }
+  .obs .t small.ko { color:#c0392b; }
+  .obs .k { display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; }
+  .obs .k div { font-size:11px; color:var(--muted); line-height:1.25; }
+  .obs .k b { display:block; color:var(--ink); font-size:13.5px; font-variant-numeric:tabular-nums; }
+  .src { font-size:11px; color:var(--muted); line-height:1.5; }
+  .src a { color:var(--acc); }
+  #ficha { position:absolute; z-index:3; top:12px; right:56px; width:330px; max-height:calc(100% - 24px); overflow:auto; display:none;
+           background:#fff; border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,.2); font-size:13px; }
+  #ficha.on { display:block; }
+  #ficha img { width:100%; display:block; border-radius:12px 12px 0 0; max-height:210px; object-fit:cover; background:var(--soft); }
+  #ficha .c { padding:12px 14px; }
+  #ficha h3 { margin:0 0 2px; font-size:15px; }
+  #ficha table { width:100%; border-collapse:collapse; margin:8px 0; }
+  #ficha td { padding:4px 0; border-bottom:1px solid var(--soft); vertical-align:top; }
+  #ficha td:first-child { color:var(--muted); width:46%; }
+  #ficha .x { position:absolute; top:8px; right:8px; border:0; background:rgba(255,255,255,.92); border-radius:50%; width:28px; height:28px; font-size:17px; cursor:pointer; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+  #ficha .links { display:flex; gap:6px; flex-wrap:wrap; }
+  #ficha .links a { font-size:11.5px; padding:4px 9px; border-radius:4px; background:#444; color:#fff; text-decoration:none; }
+  #ficha .links a.a1 { background:var(--acc); }
+  .letra { display:inline-block; min-width:22px; text-align:center; color:#fff; font-weight:700; border-radius:3px; padding:0 5px; }
+  .cargando { position:absolute; z-index:4; left:50%; top:16px; transform:translateX(-50%); background:rgba(34,34,34,.85); color:#fff; padding:6px 12px; border-radius:16px; font-size:12px; }
+  #toggle { display:none; }
+  @media (max-width:700px) {
+    .panel { width:auto; right:12px; max-height:48%; }
+    .panel.min > :not(header) { display:none; }
+    #toggle { display:inline-block; float:right; border:1px solid var(--line); background:#fff; border-radius:4px; font-size:12px; padding:2px 8px; }
+    #ficha { left:12px; right:12px; width:auto; top:auto; bottom:12px; max-height:55%; }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="cargando" id="cargando">Cargando la ciudad…</div>
+
+<aside class="panel" id="panel">
+  <header>
+    <button id="toggle">ocultar</button>
+    <h1>Gemelo Digital <span>Marbella</span></h1>
+    <div class="sub">Ciudad 3D con datos oficiales abiertos · se actualiza a diario</div>
+  </header>
+
+  <div class="sec">
+    <div class="kpis">
+      <div class="kpi"><b id="kEdif">–</b><span>edificios</span></div>
+      <div class="kpi"><b id="kViv">–</b><span>viviendas</span></div>
+      <div class="kpi"><b id="kVut">–</b><span>viviendas turísticas</span></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>Colorear edificios por</h2>
+    <div class="modos" id="modos">
+      <button data-m="uso" class="on">Uso</button>
+      <button data-m="anio">Año de construcción</button>
+      <button data-m="altura">Altura</button>
+      <button data-m="viv">Nº de viviendas</button>
+      <button data-m="vut">Viviendas turísticas</button>
+      <button data-m="cee">Eficiencia energética</button>
+    </div>
+    <div class="leyenda" id="leyenda"></div>
+  </div>
+
+  <div class="sec">
+    <h2>Capas</h2>
+    <label class="chk"><input type="checkbox" id="cOrto" checked> Ortofoto (si no, mapa base)</label>
+    <label class="chk"><input type="checkbox" id="cRelieve" checked> Relieve del terreno</label>
+    <label class="chk"><input type="checkbox" id="cCalor"> Mapa de calor de viviendas turísticas</label>
+    <label class="chk"><input type="checkbox" id="cRuta"> Ruta accesible del casco antiguo</label>
+  </div>
+
+  <div class="sec">
+    <h2>Ir a</h2>
+    <div class="fila" id="irA"></div>
+  </div>
+
+  <div class="sec">
+    <h2>Observatorios municipales</h2>
+    <div id="obs"><div class="src">Cargando indicadores…</div></div>
+  </div>
+
+  <div class="sec src" id="fuentes"></div>
+</aside>
+
+<aside id="ficha"><button class="x" title="Cerrar">×</button><div id="fichaC"></div></aside>
+
+<script src="app.js"></script>
+</body>
+</html>

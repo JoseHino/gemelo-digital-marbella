@@ -82,5 +82,12 @@ with open(OUT, "w", encoding="utf8") as f:
                             "geometry": g}, ensure_ascii=False, separators=(",", ":"), allow_nan=False) + "\n")
         n += 1
 print(f"Cuerpos con plantas sobre rasante: {n} -> {OUT} ({os.path.getsize(OUT) / 1e6:.0f} MB)")
+import datetime
+resumen = {"edificios": int(len(edif)), "cuerpos": n,
+           "viviendas": int(edif["numberOfDwellings"].apply(entero).fillna(0).sum()),
+           "edificios_con_cee": len(set(edif.index) & set(cee)),
+           "fecha_catastro": datetime.date.today().isoformat()}
+json.dump(resumen, open(os.path.join(BASE, "data", "resumen_base.json"), "w"), indent=1)
+print(resumen)
 if n < 30000:
     sys.exit("Muy pocos edificios: algo ha fallado en la descarga")
