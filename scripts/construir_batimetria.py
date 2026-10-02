@@ -8,14 +8,17 @@ EMODnet (DTM europeo, ~115 m) y genera tres productos en data/:
                          transparente en tierra)
   - capas/isobatas.geojson   curvas de profundidad
 
-Si se coloca un modelo más fino en build/batimetria_local.tif (p. ej. el MBAR24 del
-Instituto Hidrográfico de la Marina, que exige registro en cdihm.cnig.es), se usa ese
-donde tenga dato y EMODnet en el resto. Debe estar en EPSG:4326 y en metros (negativo = fondo).
+Si hay modelos más finos en fuentes/IHM/*.tif (el MBAR24 del Instituto Hidrográfico de la
+Marina, celda de 16 m, descargado con registro en cdihm.cnig.es), se usan donde tengan dato y
+EMODnet en el resto. Cualquier sistema de referencia; en metros, negativo = fondo.
+La licencia del IHM no permite redistribuir el modelo, por eso fuentes/ no se sube al repositorio
+y este script se ejecuta en local cuando se usa el MBAR24 (ver comprobación en main()).
 """
-import io, json, math, os, sys
+import glob, io, json, math, os, sys
 import numpy as np
 import requests, mercantile, rasterio, contourpy
-from rasterio.warp import reproject, Resampling
+from rasterio.enums import Resampling
+from rasterio.vrt import WarpedVRT
 from PIL import Image
 from pmtiles.writer import Writer
 from pmtiles.tile import zxy_to_tileid, TileType, Compression
@@ -31,7 +34,7 @@ ZMIN, ZMAX = 8, 14
 AWS = 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
 EMOD = ('https://ows.emodnet-bathymetry.eu/wcs?service=WCS&version=2.0.1&request=GetCoverage'
         '&coverageId=emodnet__mean&format=image/tiff&subset=Lat({s},{n})&subset=Long({w},{e})')
-LOCAL = os.path.join(BUILD, 'batimetria_local.tif')
+LOCALES = sorted(glob.glob(os.path.join(RAIZ, 'fuentes', 'IHM', '*.tif')))
 
 ses = requests.Session()
 
@@ -50,10 +53,11 @@ def descarga_emodnet():
 class Rejilla:
     """Rejilla lon/lat (EPSG:4326) con interpolación bilineal."""
     def __init__(self, ruta):
-        with rasterio.open(ruta) as src:
+        with rasterio.open(ruta) as src0:
+            src = src0 if src0.crs.to_epsg() == 4326 else WarpedVRT(src0, crs='EPSG:4326', resampling=Resampling.bilinear)
             a = src.read(1).astype('float32')
             if src.nodata is not None:
-                a[a == src.nodata] = np.nan
+                a[(a == src.nodata) | (np.abs(a) > 1e30)] = np.nan
             self.a, self.t = a, src.transform
         print(f'  {os.path.basename(ruta)}: {self.a.shape[1]}×{self.a.shape[0]} celdas, '
               f'{abs(self.t.a) * 111320 * math.cos(math.radians(36.5)):.0f} m de celda')
@@ -87,7 +91,14 @@ def aws(t):
     r = ses.get(AWS.format(z=t.z, x=t.x, y=t.y), timeout=60)
     r.raise_for_status()
     p = np.asarray(Image.open(io.BytesIO(r.content)).convert('RGB')).astype('float64')
-    return p[..., 0] * 256 + p[..., 1] + p[..., 2] / 256 - 32768
+    h = p[..., 0] * 256 + p[..., 1] + p[..., 2] / 256 - 32768
+    roto = h < -12000                       # Terrain Tiles tiene teselas rotas (-32768), p. ej. en San Pedro a z14
+    if roto.any() and t.z > 0:
+        pa = mercantile.parent(t)
+        cuarto = aws(pa)[(t.y - pa.y * 2) * 128:(t.y - pa.y * 2 + 1) * 128, (t.x - pa.x * 2) * 128:(t.x - pa.x * 2 + 1) * 128]
+        fino = np.asarray(Image.fromarray(cuarto.astype('float32'), 'F').resize((256, 256), Image.BILINEAR), dtype='float64')
+        h = np.where(roto, fino, h)
+    return h
 
 
 def terrarium(h):
@@ -118,11 +129,16 @@ def sombreado(h, t):
 
 
 def main():
+    previo = os.path.join(DATA, 'resumen_batimetria.json')
+    if not LOCALES and os.path.exists(previo) and 'IHM' in open(previo, encoding='utf-8').read()             and not os.environ.get('SOLO_EMODNET'):
+        sys.exit('La batimetría publicada usa el MBAR24 del IHM, que no está en fuentes/IHM/ (no se sube al repositorio). '
+                 'Ejecuta el script en local o define SOLO_EMODNET=1 para rehacerla solo con EMODnet (~100 m).')
     print('EMODnet: descargando batimetría')
     fuentes = [Rejilla(descarga_emodnet())]
-    if os.path.exists(LOCAL):
-        print('Modelo local encontrado, tiene prioridad donde haya dato')
-        fuentes.insert(0, Rejilla(LOCAL))
+    for ruta in LOCALES:                              # el más fino primero: tiene prioridad donde haya dato
+        print('Modelo del IHM:', os.path.basename(ruta))
+        fuentes.insert(0, Rejilla(ruta))
+    nombre = ('IHM MBAR24 (16 m) + ' if LOCALES else '') + 'EMODnet'
 
     def fondo(lon, lat):
         v = np.full(lon.shape, np.nan)
@@ -152,10 +168,10 @@ def main():
         if n % 50 == 0 or n == len(teselas):
             print(f'  {n}/{len(teselas)}')
 
-    escribe(os.path.join(DATA, 'relieve.pmtiles'), dem, 'Relieve tierra-mar (Terrain Tiles + EMODnet)')
-    escribe(os.path.join(DATA, 'batimetria.pmtiles'), color, 'Batimetría (EMODnet)')
-    isobatas(fuentes)
-    json.dump({'fuente': 'EMODnet Bathymetry DTM' + (' + modelo local' if len(fuentes) > 1 else ''),
+    escribe(os.path.join(DATA, 'relieve.pmtiles'), dem, f'Relieve tierra-mar (Terrain Tiles + {nombre})')
+    escribe(os.path.join(DATA, 'batimetria.pmtiles'), color, f'Batimetría ({nombre})')
+    isobatas(fondo)
+    json.dump({'fuente': nombre,
                'profundidad_max_zona_m': round(-min_prof), 'teselas': len(teselas)},
               open(os.path.join(DATA, 'resumen_batimetria.json'), 'w', encoding='utf-8'), ensure_ascii=False)
     print('Hecho')
@@ -179,20 +195,21 @@ def escribe(ruta, teselas, nombre):
     print(f'  {os.path.basename(ruta)}: {len(teselas)} teselas, {os.path.getsize(ruta) / 1e6:.1f} MB')
 
 
-def isobatas(fuentes):
-    """Curvas de profundidad sobre la rejilla de EMODnet (la más amplia)."""
-    g = fuentes[-1]
-    h, w = g.a.shape
-    lon = g.t.c + (np.arange(w) + 0.5) * g.t.a
-    lat = g.t.f + (np.arange(h) + 0.5) * g.t.e
-    gen = contourpy.contour_generator(lon, lat, g.a)
+def isobatas(fondo):
+    """Curvas de profundidad sobre una rejilla de ~20 m con la mejor fuente disponible en cada punto."""
+    paso = 0.0002
+    lon = np.arange(ZONA[0], ZONA[2], paso); lat = np.arange(ZONA[1], ZONA[3], paso)
+    LON, LAT = np.meshgrid(lon, lat)
+    z = fondo(LON, LAT)
+    z = np.where(np.isnan(z) | (z > 0), 1.0, z)       # tierra: por encima de todas las curvas
+    gen = contourpy.contour_generator(lon, lat, z)
     feats = []
-    for nivel in [-5, -10, -20, -30, -50, -100, -200, -300, -400, -500, -600, -700, -800]:
+    for nivel in [-2, -5, -10, -15, -20, -30, -40, -50, -75, -100, -150, -200, -300, -400, -500, -600, -700, -800, -900]:
         for linea in gen.lines(nivel):
-            if len(linea) < 4:
+            if len(linea) < 8:                           # quita islotes de ruido
                 continue
-            feats.append({'type': 'Feature', 'properties': {'prof': -nivel, 'principal': nivel in (-10, -50, -100, -200, -500)},
-                          'geometry': {'type': 'LineString', 'coordinates': [[round(x, 5), round(y, 5)] for x, y in linea]}})
+            feats.append({'type': 'Feature', 'properties': {'prof': -nivel, 'principal': nivel in (-10, -20, -50, -100, -200, -500)},
+                          'geometry': {'type': 'LineString', 'coordinates': [[round(x, 5), round(y, 5)] for x, y in linea[::2]] + [[round(linea[-1][0], 5), round(linea[-1][1], 5)]]}})
     os.makedirs(os.path.join(DATA, 'capas'), exist_ok=True)
     json.dump({'type': 'FeatureCollection', 'features': feats},
               open(os.path.join(DATA, 'capas', 'isobatas.geojson'), 'w'), separators=(',', ':'))

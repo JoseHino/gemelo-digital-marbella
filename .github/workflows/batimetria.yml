@@ -2,6 +2,8 @@ name: Batimetría y relieve tierra-mar
 
 # El fondo marino apenas cambia: se lanza a mano (Actions -> Batimetría -> Run workflow),
 # p. ej. cuando EMODnet publique una versión nueva del DTM.
+# OJO: la batimetría publicada usa el MBAR24 del IHM (16 m), que solo está en local (fuentes/IHM/, sin subir).
+# Aquí el script se detiene para no sustituirla por EMODnet (~100 m) salvo que se active SOLO_EMODNET.
 on:
   workflow_dispatch:
 

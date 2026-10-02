@@ -37,9 +37,9 @@ const map = new maplibregl.Map({
     sources: {
       orto: { type: 'raster', tiles: [wmts('OI.OrthoimageCoverage', 'pnoa-ma')], tileSize: 256, maxzoom: 19, attribution: 'Ortofoto PNOA © IGN' },
       base: { type: 'raster', tiles: [wmts('IGNBaseTodo', 'ign-base')], tileSize: 256, maxzoom: 19, attribution: 'Mapa base © IGN' },
-      // relieve continuo tierra-mar: Terrain Tiles en tierra + batimetría de EMODnet en el mar (scripts/construir_batimetria.py)
+      // relieve continuo tierra-mar: Terrain Tiles en tierra + batimetría del IHM (MBAR24, 16 m) y EMODnet en el mar (scripts/construir_batimetria.py)
       dem: { type: 'raster-dem', tiles: ['relieve://{z}/{x}/{y}'], encoding: 'terrarium', tileSize: 256, maxzoom: 14,
-             attribution: 'Relieve: Mapzen/AWS Terrain Tiles · Batimetría: EMODnet' },
+             attribution: 'Relieve: Mapzen/AWS Terrain Tiles · Batimetría: © Instituto Hidrográfico de la Marina (MBAR24), EMODnet' },
       bati: { type: 'raster', url: pmUrl('data/batimetria.pmtiles'), tileSize: 256 },
       isob: { type: 'geojson', data: 'data/capas/isobatas.geojson' },
       edif: { type: 'vector', url: pmUrl('data/edificios.pmtiles'),
@@ -267,7 +267,7 @@ function fuentes(r) {
   return `<b>Fuentes oficiales.</b> Edificios: <a target="_blank" href="https://www.catastro.hacienda.gob.es/webinspire/index.html">Catastro, INSPIRE</a>${r.fecha_catastro ? ` (base del ${r.fecha_catastro.split('-').reverse().join('/')})` : ''}; altura estimada a 3 m por planta.
     Viviendas turísticas: <a target="_blank" href="${GH}/mapa-vut-marbella/">Registro de Turismo de Andalucía</a>, a diario.
     Eficiencia energética: registro andaluz de certificados energéticos, por parcela.
-    Ortofoto y mapa base: IGN. Relieve: Terrain Tiles (AWS). Batimetría: <a target="_blank" href="https://emodnet.ec.europa.eu/en/bathymetry">EMODnet</a> (DTM europeo, celda ~100 m).
+    Ortofoto y mapa base: IGN. Relieve: Terrain Tiles (AWS). Batimetría: <a target="_blank" href="https://cdihm.cnig.es/CentroDescargasIHM/">Instituto Hidrográfico de la Marina</a> (modelo MBAR24, celda de 16 m) y, fuera de su cobertura, <a target="_blank" href="https://emodnet.ec.europa.eu/en/bathymetry">EMODnet</a> (~100 m).
     Indicadores: observatorios municipales de Marbella, sincronizados cada día.`;
 }
 
