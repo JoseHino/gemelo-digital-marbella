@@ -43,4 +43,4 @@ jobs:
           git add data/edificios.pmtiles data/resumen_base.json
           git diff --cached --quiet && exit 0
           git commit -m "Base 3D: edificios del Catastro $(date -u +%F)"
-          git push
+          git pull --rebase -q && git push

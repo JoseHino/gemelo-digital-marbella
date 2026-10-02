@@ -29,4 +29,4 @@ jobs:
           git add data/observatorios.json data/capas
           if git diff --cached --quiet; then echo "Sin cambios"; exit 0; fi
           git commit -m "Observatorios: sincronización $(date -u +%F)"
-          git push
+          git pull --rebase -q && git push
