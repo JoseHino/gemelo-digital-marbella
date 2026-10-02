@@ -1,0 +1,46 @@
+name: Base 3D (Catastro)
+
+# Los edificios cambian poco: se lanza a mano (Actions -> Base 3D -> Run workflow), p. ej. una vez al año.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  base3d:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install geopandas pyogrio shapely pyproj
+
+      - name: Instalar tippecanoe
+        run: |
+          git clone --depth 1 https://github.com/felt/tippecanoe.git /tmp/tippecanoe
+          make -C /tmp/tippecanoe -j"$(nproc)"
+          sudo make -C /tmp/tippecanoe install
+
+      - name: Edificios del Catastro (INSPIRE) -> GeoJSON
+        run: python -u scripts/construir_base.py
+
+      - name: Teselas vectoriales (PMTiles)
+        run: |
+          tippecanoe -o data/edificios.pmtiles -l edificios -P -Z13 -z16 \
+            --drop-densest-as-needed --extend-zooms-if-still-dropping \
+            --force build/edificios.geojsonseq
+          ls -la data/edificios.pmtiles
+
+      - name: Publicar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898888+github-actions[bot]@users.noreply.github.com"
+          git add data/edificios.pmtiles
+          git diff --cached --quiet && exit 0
+          git commit -m "Base 3D: edificios del Catastro $(date -u +%F)"
+          git push
