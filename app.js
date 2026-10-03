@@ -174,6 +174,22 @@ const MODOS = {
                   la mitad de la superficie en planta aprovechable, 0,2 kWp/m², producción de PVGIS para Marbella y 3.500 kWh/año por vivienda.
                   No tiene en cuenta sombras de edificios vecinos ni la orientación de cada tejado. Pulsa un edificio para ver su potencia.` },
   },
+  quince: {
+    get color() {
+      if (!servicioQ) return ['step', ['coalesce', ['get', 'q'], 0], '#f2f0f7', 1, '#dadaeb', 3, '#bcbddc', 5, '#9e9ac8', 6, '#756bb1', 7, '#54278f'];
+      const t = ['get', `t${servicioQ}`];
+      return ['case', ['has', `t${servicioQ}`], ['step', t, '#54278f', 6, '#756bb1', 11, '#9e9ac8', 16, '#cbc9e2', 21, '#e6e4f0', 31, '#f2f0f7'], '#f2f0f7'];
+    },
+    get ley() {
+      const sel = `<label class="selq">Servicio <select id="selQ"><option value="0">Todos (cuántos a 15 min)</option>${
+        SERVICIOS_Q.map((n, i) => `<option value="${i + 1}"${servicioQ === i + 1 ? ' selected' : ''}>${n}</option>`).join('')}</select></label>`;
+      return servicioQ
+        ? { pre: sel, cat: [['≤ 5 min', '#54278f'], ['6–10', '#756bb1'], ['11–15', '#9e9ac8'], ['16–20', '#cbc9e2'], ['21–30', '#e6e4f0'], ['> 30', '#f2f0f7']],
+            nota: `Minutos a pie hasta ${SERVICIOS_Q[servicioQ - 1].toLowerCase()} más cercano/a, por la red peatonal y con la pendiente. ${NOTA_Q}` }
+        : { pre: sel, cat: [['0', '#f2f0f7'], ['1–2', '#dadaeb'], ['3–4', '#bcbddc'], ['5', '#9e9ac8'], ['6', '#756bb1'], ['Los 7', '#54278f']],
+            nota: `Cuántos de los 7 servicios básicos (salud, farmacia, colegio, alimentación, autobús, parque y playa) tiene cada edificio a 15 minutos andando o menos. ${NOTA_Q}${resumenQ}` };
+    },
+  },
   monte: {
     color: ['case', ['has', 'dm'], ['interpolate', ['linear'], ['get', 'dm'], 0, '#b2182b', 100, '#ef8a62', 400, '#fddbc7'], '#e4e6e8'],
     ley: { grad: 'linear-gradient(90deg,#b2182b,#ef8a62,#fddbc7)', de: '0 m', a: '400 m',
@@ -181,17 +197,28 @@ const MODOS = {
   },
 };
 let modo = 'uso';
+// ciudad de 15 minutos
+const SERVICIOS_Q = ['Centro de salud u hospital', 'Farmacia', 'Colegio o escuela infantil', 'Supermercado o tienda de alimentación', 'Parada de autobús', 'Parque o zona verde', 'Playa'];
+const NOTA_Q = `Calculado con la red peatonal y los servicios de OpenStreetMap (puede faltar alguno, sobre todo centros de salud),
+  velocidad de 5 km/h en llano y más lenta en cuesta (función de Tobler, con el relieve del gemelo).`;
+let servicioQ = 0, resumenQ = '';
+fetch('data/quince_resumen.json').then(r => r.json()).then(q => {
+  const n = q.por_n_servicios, tot = Object.values(n).reduce((a, b) => a + b, 0), pct = v => Math.round(v / tot * 100);
+  resumenQ = `<br>En Marbella, el <b>${pct(n[7])} %</b> de los edificios tiene los 7 servicios a 15 minutos o menos, el ${pct(n[6] + n[7])} % al menos 6 y el ${pct(n[0])} % ninguno.`;
+  if (modo === 'quince') aplicaModo('quince');
+}).catch(() => {});
 
 function aplicaModo(m) {
   modo = m;
   document.querySelectorAll('#modos button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
   map.setPaintProperty('edificios', 'fill-extrusion-color', ['case', SEL, '#1044CD', INUND, '#e6007e', MODOS[m].color]);
   const l = MODOS[m].ley;
-  $('leyenda').innerHTML = (l.grad ? `<div class="grad" style="background:${l.grad}"></div><div class="gl"><span>${l.de}</span><span>${l.a}</span></div>` : '') +
+  $('leyenda').innerHTML = (l.pre || '') + (l.grad ? `<div class="grad" style="background:${l.grad}"></div><div class="gl"><span>${l.de}</span><span>${l.a}</span></div>` : '') +
     (l.cat ? `<div class="cat">${l.cat.map(([t, c]) => `<span><i style="background:${c}"></i>${t}</span>`).join('')}</div>` : '') +
     (l.nota ? `<div class="nota">${l.nota}</div>` : '');
 }
 document.querySelectorAll('#modos button').forEach(b => b.onclick = () => aplicaModo(b.dataset.m));
+$('leyenda').addEventListener('change', e => { if (e.target.id === 'selQ') { servicioQ = +e.target.value; aplicaModo('quince'); } });
 
 // ------------------------------------------------------------------ capas
 map.on('load', () => {
@@ -224,6 +251,19 @@ map.on('load', () => {
   map.addLayer({ id: 'franjas', type: 'fill', source: 'franjas', layout: { visibility: 'none' },
                  paint: { 'fill-color': ['match', ['get', 'franja'], 100, '#e63946', '#f4a261'], 'fill-opacity': 0.4 } }, 'fwi');
   map.addLayer({ id: 'monte', type: 'fill', source: 'monte', layout: { visibility: 'none' }, paint: { 'fill-color': '#2d6a4f', 'fill-opacity': 0.4 } }, 'franjas');
+  map.addSource('trafico', { type: 'geojson', data: vacio });
+  map.addLayer({ id: 'trafico-linea', type: 'line', source: 'trafico', filter: ['==', ['geometry-type'], 'LineString'], layout: { visibility: 'none', 'line-cap': 'round' },
+                 paint: { 'line-color': ['step', ['get', 'gravedad'], '#f4a261', 2, '#e76f51', 3, '#c1121f'], 'line-width': 6, 'line-opacity': 0.85 } });
+  map.addLayer({ id: 'trafico', type: 'circle', source: 'trafico', filter: ['==', ['get', 'punto'], true], layout: { visibility: 'none' },
+                 paint: { 'circle-radius': 8, 'circle-color': ['step', ['get', 'gravedad'], '#f4a261', 2, '#e76f51', 3, '#c1121f'],
+                          'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } });
+  map.addSource('rest', { type: 'geojson', data: vacio });
+  map.addLayer({ id: 'rest', type: 'circle', source: 'rest', layout: { visibility: 'none' },
+                 paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 14, 3.5, 18, 8], 'circle-color': '#e76f51',
+                          'circle-stroke-width': 1.5, 'circle-stroke-color': '#fff' } });
+  map.addSource('sombras', { type: 'geojson', data: vacio });
+  map.addLayer({ id: 'sombras', type: 'fill', source: 'sombras', layout: { visibility: 'none' },
+                 paint: { 'fill-color': '#14213d', 'fill-opacity': 0.38, 'fill-antialias': false } }, 'edificios');
   map.addSource('focos', { type: 'geojson', data: vacio });
   map.addLayer({ id: 'focos', type: 'circle', source: 'focos', layout: { visibility: 'none' },
                  paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 4, 14, 9], 'circle-stroke-width': 1.5, 'circle-stroke-color': '#fff',
@@ -232,6 +272,7 @@ map.on('load', () => {
   cargaVut();
   $('cSim').disabled = false;
   $('cEvo').disabled = false;
+  $('cSol').disabled = false;
   $('cargando').style.display = 'none';
 });
 
@@ -329,6 +370,10 @@ map.on('click', 'edificios', e => {
         <tr><td>Certificado energético</td><td>${p.cee ? `<span class="letra" style="background:${COL[p.cee] || '#999'}">${esc(p.cee)}</span>` : 'Sin certificado registrado'}</td></tr>
         <tr><td>Potencial solar de la cubierta</td><td>${p.kwp ? `${fmt(Math.round(p.kwp))} kWp · ${dec(p.kwp * PROD_KWP() / 1000, p.kwp * PROD_KWP() < 10000 ? 1 : 0)} MWh/año` +
           (p.cob != null ? `<br>cubriría el ${fmt(p.cob)} % del consumo de sus viviendas` : '') : '–'}</td></tr>
+        <tr><td>A pie hasta…</td><td class="apie">${p.q == null ? '–' : SERVICIOS_Q.map((n, i) => {
+          const m = p[`t${i + 1}`];
+          return `<span class="${m != null && m <= 15 ? 'si' : 'no'}">${esc(n.split(' ')[0] === 'Centro' ? 'Salud' : n.split(' o ')[0].replace('Parada de autobús', 'Autobús'))} <b>${m == null ? '> 60' : m} min</b></span>`;
+        }).join('') + `<div class="sub">${p.q} de 7 servicios a 15 min o menos</div>`}</td></tr>
         <tr><td>Distancia al monte</td><td>${p.dm == null ? 'Más de 400 m' : p.dm < 1 ? 'Dentro del monte' : `${fmt(p.dm)} m`}${p.dm != null && p.dm <= 100 ? ' · <b>primera línea</b>' : ''}</td></tr>
       </table>
       ${['E', 'F', 'G'].includes(p.cee) && p.cob >= 50 ? `<div class="sub" style="margin:-2px 0 8px">★ Buen candidato a placas solares: certificado ${esc(p.cee)} y una cubierta capaz de cubrir más de la mitad del consumo de sus viviendas.</div>` : ''}
@@ -381,7 +426,9 @@ function fuentes(r) {
     Embalse: <a target="_blank" href="${GH}/observatorio-hidrico-concepcion/">observatorio hídrico de La Concepción</a> (REDIAM y Red Hidrosur).
     Potencial solar: <a target="_blank" href="https://joint-research-centre.ec.europa.eu/photovoltaic-geographical-information-system-pvgis_en">PVGIS</a> (Comisión Europea) sobre la huella de los edificios del Catastro.
     Incendios: peligro diario de <a target="_blank" href="https://forest-fire.emergency.copernicus.eu/">EFFIS</a> (Copernicus), focos de <a target="_blank" href="https://firms.modaps.eosdis.nasa.gov/">NASA FIRMS</a> cada 3 horas y monte de OpenStreetMap.
-    Fotos aéreas históricas: <a target="_blank" href="https://fototeca.cnig.es/">IGN</a>.`;
+    Fotos aéreas históricas: <a target="_blank" href="https://fototeca.cnig.es/">IGN</a>.
+    Avisos meteorológicos: AEMET a través de <a target="_blank" href="https://meteoalarm.org/">Meteoalarm</a>; tráfico: <a target="_blank" href="https://nap.dgt.es/">DGT</a> (DATEX II), cada 30 minutos.
+    Ciudad de 15 minutos: red peatonal y servicios de <a target="_blank" href="https://www.openstreetmap.org/">OpenStreetMap</a>.`;
 }
 
 fetch('data/observatorios.json').then(r => r.json()).then(d => {
@@ -406,12 +453,13 @@ const dec = (n, d = 1) => n == null ? '–' : Number(n).toLocaleString('es-ES', 
 const H = id => `data-h="${id}" role="button" tabindex="0" title="Ver el histórico y cruzarlo con otros datos"`;
 async function cargaVivo() {
   const j = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
-  const [met, mar, aire, emb, fwi] = await Promise.all([
+  const [met, mar, aire, emb, fwi, traf] = await Promise.all([
     j(`https://api.open-meteo.com/v1/forecast?${OM}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m&daily=uv_index_max&forecast_days=1`),
     j('https://marine-api.open-meteo.com/v1/marine?latitude=36.49&longitude=-4.88&timezone=Europe%2FMadrid&current=wave_height,wave_period,wave_direction,sea_surface_temperature'),
     j(`https://air-quality-api.open-meteo.com/v1/air-quality?${OM}&current=european_aqi,pm10,nitrogen_dioxide`),
-    cargaEmbalse(), peligroHoy(),
+    cargaEmbalse(), peligroHoy(), j('data/capas/trafico.geojson?' + Math.floor(Date.now() / 600000)),
   ]);
+  cargaAvisos();
   const c = met?.current, m = mar?.current, a = aire?.current, cel = [];
   if (c) {
     cel.push(`<div ${H('temp')}><b>${dec(c.temperature_2m)} °C</b>${esc(CIELO[c.weather_code] || '')} · sensación ${dec(c.apparent_temperature, 0)} °C</div>`);
@@ -424,15 +472,77 @@ async function cargaVivo() {
   if (a) cel.push(`<div ${H('ica')}><b>${dec(a.european_aqi, 0)}</b>Calidad del aire <em>${ICA(a.european_aqi)}</em> · NO₂ ${dec(a.nitrogen_dioxide, 0)} µg/m³</div>`);
   if (met?.daily) cel.push(`<div ${H('uv')}><b>${dec(met.daily.uv_index_max[0], 0)}</b>Índice UV máximo de hoy</div>`);
   if (emb?.embalse) cel.push(`<div ${H('embalse')}><b>${dec(emb.embalse.porcentaje, 0)} %</b>Embalse de La Concepción · ${dec(emb.embalse.volumen)} hm³</div>`);
+  if (traf) {
+    const n = traf.features.filter(f => f.properties.punto).length;
+    cel.push(`<div class="${n ? 'alerta' : ''}" data-capa="trafico" role="button" tabindex="0" title="Ver las incidencias en el mapa"><b>${n || 'Sin'} ${n === 1 ? 'incidencia' : 'incidencias'}</b>Tráfico en Marbella (DGT)</div>`);
+    if (traficoCargado) map.getSource('trafico').setData(traf);
+  }
   if (fwi) cel.push(`<div class="${fwi.i >= 2 ? 'alerta' : ''}" data-capa="fwi" role="button" tabindex="0" title="Ver el mapa de peligro de incendio"><b>${fwi.t}</b>Peligro de incendio hoy en Sierra Blanca</div>`);
   $('vivo').innerHTML = cel.length ? cel.join('') : '<div>Sin conexión con Open-Meteo.</div>';
   if (c) $('vivoHora').textContent = c.time.slice(11, 16) + ' h';
 }
 setInterval(cargaVivo, 15 * 60 * 1000);
 $('vivo').addEventListener('click', e => {
-  if (!e.target.closest('[data-capa="fwi"]') || !map.isStyleLoaded()) return;
-  $('cFwi').checked = true; $('cFwi').onchange({ target: $('cFwi') });
+  const c = e.target.closest('[data-capa]');
+  if (!c || !map.isStyleLoaded()) return;
+  const chk = $(c.dataset.capa === 'fwi' ? 'cFwi' : 'cTrafico');
+  chk.checked = true; chk.onchange({ target: chk });
 });
+
+// bares y restaurantes del centro: datos del mapa "Mesas de Marbella", leídos en vivo
+let restCargados = false;
+$('cRest').onchange = async e => {
+  map.setLayoutProperty('rest', 'visibility', e.target.checked ? 'visible' : 'none');
+  if (!e.target.checked) return;
+  if (!restCargados) {
+    restCargados = true;
+    try {
+      const d = await (await fetch('https://restaurantes-marbella.github.io/data.json')).json();
+      map.getSource('rest').setData({ type: 'FeatureCollection', features: d.filter(r => r.lat && r.lng).map(r => ({
+        type: 'Feature', geometry: { type: 'Point', coordinates: [r.lng, r.lat] },
+        properties: { nombre: r.nombre, tipo: r.categoria || r.tipo, dir: `${r.calle || ''} ${r.num || ''}`.trim(), acc: r.accesible, aprox: r.precision === 'calle' } })) });
+    } catch (err) { restCargados = false; console.error('restaurantes', err); }
+  }
+  if (map.getZoom() < 15.5) map.flyTo({ center: [-4.8852, 36.5105], zoom: 16.8, pitch: 50, duration: 2500 });
+};
+const popRest = new maplibregl.Popup({ closeButton: false, className: 'cota' });
+map.on('click', 'rest', e => {
+  const p = e.features[0].properties;
+  popRest.setLngLat(e.lngLat).setHTML(`<b>${esc(p.nombre)}</b><br>${esc(p.tipo)}<br>${esc(p.dir)}${p.acc === 'si' ? '<br>♿ Accesible' : ''}${p.aprox ? '<br><i>Ubicación aproximada</i>' : ''}
+    <br><a target="_blank" href="https://restaurantes-marbella.github.io/">Ver en Mesas de Marbella ↗</a>`).addTo(map);
+});
+map.on('mouseenter', 'rest', () => map.getCanvas().style.cursor = 'pointer');
+map.on('mouseleave', 'rest', () => map.getCanvas().style.cursor = '');
+
+// avisos meteorológicos de AEMET (Meteoalarm, vía GitHub Actions cada 30 min)
+async function cargaAvisos() {
+  try {
+    const d = await (await fetch('data/avisos.json?' + Math.floor(Date.now() / 600000))).json();
+    const hora = t => new Date(t).toLocaleString('es-ES', { weekday: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
+    $('avisos').innerHTML = d.avisos.map(a => `<div class="aviso ${esc(a.nivel)}">⚠ <b>Aviso ${esc(a.nivel)} por ${esc(a.fenomeno)}</b>
+      · ${esc(a.zona)}${a.fin ? ` · hasta el ${hora(a.fin)}` : ''}</div>`).join('');
+  } catch { $('avisos').innerHTML = ''; }
+}
+
+// incidencias de tráfico de la DGT
+let traficoCargado = false;
+$('cTrafico').onchange = async e => {
+  ['trafico', 'trafico-linea'].forEach(l => map.setLayoutProperty(l, 'visibility', e.target.checked ? 'visible' : 'none'));
+  if (!e.target.checked) return;
+  if (!traficoCargado) {
+    traficoCargado = true;
+    map.getSource('trafico').setData(await (await fetch('data/capas/trafico.geojson?' + Math.floor(Date.now() / 600000))).json());
+  }
+  if (map.getZoom() > 13.5) map.flyTo({ center: [-4.905, 36.505], zoom: 12.8, pitch: 45, duration: 2000 });
+};
+const popTraf = new maplibregl.Popup({ closeButton: false, className: 'cota' });
+map.on('click', 'trafico', e => {
+  const p = e.features[0].properties;
+  popTraf.setLngLat(e.lngLat).setHTML(`<b>${esc(p.tipo)}</b>${p.via ? ` · ${esc(p.via)}` : ''}${p.km ? ` (km ${esc(p.km)})` : ''}
+    ${p.desde ? `<br>Desde el ${new Date(p.desde).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}` : ''}`).addTo(map);
+});
+map.on('mouseenter', 'trafico', () => map.getCanvas().style.cursor = 'pointer');
+map.on('mouseleave', 'trafico', () => map.getCanvas().style.cursor = '');
 
 // embalse: datos del observatorio hídrico (window.DATOS de su data.js); historico.js también los usa
 let embalse = null;

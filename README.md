@@ -16,6 +16,11 @@ Toda Marbella en 3D con datos oficiales abiertos, más los indicadores de los ob
 - **Potencial solar de cubierta** (modo de color y ficha): kWp instalables y % del consumo de las viviendas que cubrirían, con la producción de PVGIS para Marbella; señala los edificios con certificado E/F/G y buen potencial.
 - **Riesgo de incendio forestal**: peligro diario de EFFIS (también como tarjeta en vivo), focos de calor de NASA FIRMS de los últimos 7 días, monte de OpenStreetMap con franjas de 100 y 400 m, y modo de color por distancia al monte.
 - **Embalse de La Concepción** en el panel en vivo y en el histórico (reserva y lluvia en la presa), leído del [observatorio hídrico](https://josehino.github.io/observatorio-hidrico-concepcion/).
+- **Ciudad de 15 minutos** (modo de color y ficha): minutos a pie desde cada edificio al centro de salud, farmacia, colegio, alimentación, parada de autobús, parque y playa más cercanos, por la red peatonal de OpenStreetMap y con la pendiente (función de Tobler sobre el relieve del gemelo); `scripts/construir_15min.py`.
+- **Sol y sombras** (`sombras.js`): posición del sol para cualquier día y hora y sombra de los edificios de la vista; la luz de los edificios 3D se orienta con el sol.
+- **Población flotante** (`poblacion.js`): empadronados (API del INE) + huéspedes de alojamiento reglado (pernoctaciones del último mes) + turistas en VUT y ocupantes de segundas residencias (ocupación ajustable), y su demanda diaria de agua y residuos.
+- **Avisos y tráfico**: avisos de AEMET para Málaga (Meteoalarm) arriba del panel e incidencias de la DGT en el mapa y en una tarjeta en vivo; `avisos.yml` cada 30 min.
+- **Bares y restaurantes del centro**, leídos en vivo de [Mesas de Marbella](https://restaurantes-marbella.github.io/).
 - **Simulación de subida del nivel del mar**: deslizador de 0 a 5 m y escenarios de 2100 (IPCC AR6), con el agua sobre el relieve y el recuento de edificios, viviendas y VUT afectados en la vista. Modelo de "bañera" calculado en el navegador a partir de `data/relieve.pmtiles` (protocolo `inunda://` en `app.js`): orientativo, no delimita zonas de riesgo.
 - **Indicadores de los observatorios**: VUT, Turístico, Dashboard DTI, Tráfico, Ambiental y Residuos, con enlace a cada uno.
 
@@ -28,6 +33,8 @@ Toda Marbella en 3D con datos oficiales abiertos, más los indicadores de los ob
 | Batimetría y relieve tierra-mar | A mano, cuando EMODnet publique versión nueva | **Actions → Batimetría y relieve tierra-mar → Run workflow**: EMODnet (WCS) + Terrain Tiles → `data/relieve.pmtiles`, `data/batimetria.pmtiles`, `data/capas/isobatas.geojson`. **Ahora se genera en local**: usa el MBAR24 del IHM (16 m) de `fuentes/IHM/`, que no se sube al repositorio porque su licencia no permite redistribuirlo; el workflow se niega a sobrescribirlo salvo con `SOLO_EMODNET=1` |
 | Focos de incendio | Cada 3 horas | `incendios.yml` → `scripts/focos_incendio.py` (ficheros públicos de NASA FIRMS, sin clave) → `data/capas/focos.geojson` |
 | Monte y franjas de 100/400 m | A mano, ~1 vez al año, antes de la base 3D | `python scripts/construir_monte.py` (OpenStreetMap) → `data/capas/monte.geojson`, `franjas_monte.geojson`; la base 3D calcula con ellos la distancia de cada edificio al monte |
+| Avisos de AEMET e incidencias de la DGT | Cada 30 minutos | `avisos.yml` → `scripts/avisos_trafico.py` → `data/avisos.json`, `data/capas/trafico.geojson` |
+| Ciudad de 15 minutos | A mano, ~1 vez al año, antes de la base 3D | `python scripts/construir_15min.py` (OpenStreetMap; ~8 min) → `data/quince_parcela.json`; la base 3D lo mete en las teselas |
 | Certificados energéticos | A mano, ~1 vez al año | `data/cee_parcela.json`, a partir del registro andaluz de certificados energéticos |
 
 ## Archivos

@@ -1,0 +1,38 @@
+name: Avisos meteorológicos y tráfico
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"     # cada media hora (GitHub puede retrasarlo unos minutos)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: sincronizar
+
+jobs:
+  avisos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Avisos de AEMET (Meteoalarm) e incidencias de la DGT
+        run: python -u scripts/avisos_trafico.py
+      - name: Publicar si cambian los avisos o las incidencias
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898888+github-actions[bot]@users.noreply.github.com"
+          # se ignora la hora de actualización: solo cuenta si cambia el contenido
+          contenido() { python -c "import json,sys; d=json.load(open(sys.argv[1])); d.pop('actualizado',None); print(json.dumps(d,sort_keys=True))" "$1"; }
+          cambio=0
+          for f in data/avisos.json data/capas/trafico.geojson; do
+            git show HEAD:$f > /tmp/antes 2>/dev/null || { cambio=1; continue; }
+            [ "$(contenido /tmp/antes)" = "$(contenido $f)" ] || cambio=1
+          done
+          [ $cambio = 1 ] || { echo "Sin cambios"; exit 0; }
+          git add data/avisos.json data/capas/trafico.geojson
+          git commit -m "Avisos y tráfico $(date -u +%F' '%H:%M)"
+          git pull --rebase -q && git push
