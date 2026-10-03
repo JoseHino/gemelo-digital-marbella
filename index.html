@@ -80,6 +80,14 @@
   .sim .res b { display:block; color:var(--ink); font-size:15px; font-variant-numeric:tabular-nums; }
   .sim .nota { font-size:11px; color:var(--muted); line-height:1.45; margin-top:8px; }
   .sim .off { opacity:.45; pointer-events:none; }
+  .evo .res div { border-left-color:var(--acc); }
+  .evo-fila { display:flex; align-items:center; gap:8px; }
+  .evo-fila input { flex:1; }
+  #evoPlay { border:1px solid var(--acc); background:#fff; color:var(--acc); border-radius:50%; width:30px; height:30px; cursor:pointer; font-size:12px; flex:none; }
+  #evoPlay.on { background:var(--acc); color:#fff; }
+  .evo-graf { position:relative; height:70px; margin:4px 0 2px; }
+  .vuelo { color:var(--muted); font-size:11px; }
+  .vivo .alerta b { color:#b45309; }
   .vivo [data-h] { cursor:pointer; border:1px solid transparent; transition:border-color .15s, background .15s; }
   .vivo [data-h]:hover, .vivo [data-h]:focus-visible { border-color:var(--acc); background:#eef3ff; outline:none; }
   .vivo-pista { font-size:11px; color:var(--muted); margin-top:6px; }
@@ -158,6 +166,8 @@
       <button data-m="viv">Nº de viviendas</button>
       <button data-m="vut">Viviendas turísticas</button>
       <button data-m="cee">Eficiencia energética</button>
+      <button data-m="solar">Potencial solar</button>
+      <button data-m="monte">Cercanía al monte</button>
     </div>
     <div class="leyenda" id="leyenda"></div>
   </div>
@@ -195,6 +205,45 @@
         <div><b id="simT">–</b>viv. turísticas</div>
       </div>
       <div class="nota" id="simNota"></div>
+    </div>
+  </div>
+
+  <div class="sec sim evo">
+    <h2>Evolución urbana</h2>
+    <label class="chk"><input type="checkbox" id="cEvo" disabled> Ver la ciudad año a año</label>
+    <div id="evoCtl" class="off">
+      <div class="nivel"><span>Edificios construidos hasta</span><b id="evoA">2025</b></div>
+      <div class="evo-fila"><button id="evoPlay" title="Reproducir">▶</button>
+        <input type="range" id="evoR" min="1950" max="2025" step="1" value="2025" aria-label="Año"></div>
+      <div class="evo-graf"><canvas id="evoG" aria-label="Viviendas construidas cada año"></canvas></div>
+      <div class="res">
+        <div><b id="evoE">–</b>edificios</div>
+        <div><b id="evoV">–</b>viviendas</div>
+        <div><b id="evoP">–</b>de las de hoy</div>
+      </div>
+      <label class="chk"><input type="checkbox" id="cEvoOrto" checked> Foto aérea de la época <span id="evoVuelo" class="vuelo"></span></label>
+      <div class="nota">Año de construcción según el Catastro (el de la última reforma integral, si la hubo; los edificios derribados no aparecen).
+        Fotos aéreas: vuelo americano de 1956, interministerial (1973-86), nacional (1981-86), SIGPAC (1997-2003) y PNOA (2004-2024), del IGN.</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>Riesgo de incendio forestal</h2>
+    <label class="chk"><input type="checkbox" id="cFwi"> Peligro de incendio de hoy (EFFIS)</label>
+    <div class="leyenda" id="leyFwi" style="display:none;margin:2px 0 6px 24px">
+      <div class="cat"><span><i style="background:#9cffc0"></i>Bajo</span><span><i style="background:#cde24e"></i>Moderado</span><span><i style="background:#e6ac00"></i>Alto</span>
+        <span><i style="background:#d97010"></i>Muy alto</span><span><i style="background:#ad060e"></i>Extremo</span><span><i style="background:#4b0014"></i>Muy extremo</span></div>
+      <div class="nota">Índice meteorológico de peligro de incendio (FWI) del sistema europeo EFFIS (Copernicus), previsión para hoy. Celda de unos 10 km.</div>
+    </div>
+    <label class="chk"><input type="checkbox" id="cFocos"> Focos de calor de los últimos 7 días (NASA)</label>
+    <div class="leyenda" id="leyFocos" style="display:none;margin:2px 0 6px 24px">
+      <div class="cat"><span><i style="background:#d7191c;border-radius:50%"></i>Últimas 24 h</span><span><i style="background:#fdae61;border-radius:50%"></i>1 a 7 días</span></div>
+      <div class="nota" id="focosNota">Detecciones de satélite (VIIRS y MODIS, unos 375 m): incendios, quemas agrícolas o calor industrial. Pulsa un foco para ver su fecha.</div>
+    </div>
+    <label class="chk"><input type="checkbox" id="cMonte"> Monte y franjas de 100 y 400 m</label>
+    <div class="leyenda" id="leyMonte" style="display:none;margin:2px 0 6px 24px">
+      <div class="cat"><span><i style="background:#2d6a4f"></i>Monte</span><span><i style="background:#e63946"></i>0-100 m</span><span><i style="background:#f4a261"></i>100-400 m</span></div>
+      <div class="nota" id="monteNota"></div>
     </div>
   </div>
 

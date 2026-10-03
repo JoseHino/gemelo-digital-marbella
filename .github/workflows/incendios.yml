@@ -1,0 +1,36 @@
+name: Focos de incendio (NASA FIRMS)
+
+on:
+  schedule:
+    - cron: "23 */3 * * *"     # cada 3 horas
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: sincronizar
+
+jobs:
+  focos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Focos de los últimos 7 días
+        run: python -u scripts/focos_incendio.py
+      - name: Publicar si hay cambios en los focos
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898888+github-actions[bot]@users.noreply.github.com"
+          # solo cuenta como cambio si cambian los focos, no la hora de actualización
+          if git show HEAD:data/capas/focos.geojson >/dev/null 2>&1 && \
+             [ "$(git show HEAD:data/capas/focos.geojson | python -c 'import json,sys; print(json.load(sys.stdin)["features"])')" = \
+               "$(python -c 'import json; print(json.load(open("data/capas/focos.geojson"))["features"])')" ]; then
+            echo "Sin focos nuevos"; exit 0
+          fi
+          git add data/capas/focos.geojson
+          git commit -m "Focos de incendio $(date -u +%F' '%H:%M)"
+          git pull --rebase -q && git push

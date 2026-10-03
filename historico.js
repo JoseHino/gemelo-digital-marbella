@@ -20,14 +20,18 @@ const HVARS = {
   pm25:    { t: 'Partículas PM2,5', u: 'µg/m³', api: 'aire', v: 'pm2_5' },
   o3:      { t: 'Ozono (O₃)', u: 'µg/m³', api: 'aire', v: 'ozone' },
   uv:      { t: 'Índice UV', u: '', api: 'aire', v: 'uv_index', agg: 'max' },
+  embalse: { t: 'Reserva del embalse de La Concepción', u: '%', api: 'emb', v: 'porcentaje', diaria: true },
+  lluviap: { t: 'Lluvia en la presa de La Concepción', u: 'mm', api: 'emb', v: 'lluvia', agg: 'suma', diaria: true },
 };
 const GRUPOS = [['Tiempo', ['temp', 'sens', 'hum', 'lluvia', 'viento', 'rachas', 'dirv']],
                 ['Mar', ['sst', 'ola', 'periodo', 'dirola']],
-                ['Aire', ['ica', 'no2', 'pm10', 'pm25', 'o3', 'uv']]];
+                ['Aire', ['ica', 'no2', 'pm10', 'pm25', 'o3', 'uv']],
+                ['Agua', ['embalse', 'lluviap']]];
 const H_API = {
   met:  { url: 'https://archive-api.open-meteo.com/v1/archive', pt: 'latitude=36.505&longitude=-4.886', fuente: 'reanálisis ERA5 (Copernicus) y previsión de Open-Meteo' },
   mar:  { url: 'https://marine-api.open-meteo.com/v1/marine', pt: 'latitude=36.49&longitude=-4.88', fuente: 'modelos marinos de Open-Meteo (Copernicus Marine y otros)' },
   aire: { url: 'https://air-quality-api.open-meteo.com/v1/air-quality', pt: 'latitude=36.505&longitude=-4.886', fuente: 'CAMS Europa (Copernicus)' },
+  emb:  { fuente: 'observatorio hídrico de La Concepción (REDIAM y Red Hidrosur; datos diarios)' },
 };
 const RANGOS = [[7, '7 días'], [30, '30 días'], [365, '1 año'], [1095, '3 años']];
 const DIA = 86400000;
@@ -50,6 +54,7 @@ const cacheH = new Map();
 function descargaApi(api, dias) {
   const k = `${api}|${dias}`;
   if (cacheH.has(k)) return cacheH.get(k);
+  if (api === 'emb') return descargaEmbalse(dias);
   const ahora = hoyMadrid(), fin = ahora.slice(0, 10), ini = iso(ms(fin) - dias * DIA);
   const vars = Object.values(HVARS).filter(x => x.api === api).map(x => x.v).join(',');
   const A = H_API[api], tz = 'timezone=Europe%2FMadrid';
@@ -78,11 +83,23 @@ function descargaApi(api, dias) {
   return p;
 }
 
-// serie [{t, y}] de una variable: horaria si el rango es corto, diaria si es largo
-async function serieDe(id, dias) {
+// embalse: reserva diaria (3 últimos años) y lluvia diaria de la presa (último año) del observatorio hídrico
+async function descargaEmbalse(dias) {
+  const d = embalse || await cargaEmbalse();
+  if (!d) throw new Error('embalse: sin datos');
+  const ini = ms(hoyMadrid().slice(0, 10)) - dias * DIA, mapa = (x, ys) => {
+    const m = new Map();
+    x.forEach((f, i) => { const t = ms(f); if (ys[i] != null && t >= ini) m.set(t, ys[i]); });
+    return m;
+  };
+  return { porcentaje: mapa(d.diario.x, d.diario.porcentaje), lluvia: mapa(d.lluvia.diario.x, d.lluvia.diario[d.lluvia.ref]) };
+}
+
+// serie [{t, y}] de una variable: horaria si el rango es corto, diaria si es largo (o si la otra variable es diaria)
+async function serieDe(id, dias, diario) {
   const V = HVARS[id], m = (await descargaApi(V.api, dias))[V.v];
   const horas = [...m].sort((a, b) => a[0] - b[0]);
-  if (dias <= 30) return horas.map(([t, y]) => ({ t, y }));
+  if (!diario) return horas.map(([t, y]) => ({ t, y }));
   const porDia = new Map();
   for (const [t, y] of horas) { const d = t - t % DIA; (porDia.get(d) || porDia.set(d, []).get(d)).push(y); }
   return [...porDia].map(([t, ys]) => ({ t, y: agrega(ys, V.agg) }));
@@ -147,15 +164,15 @@ async function dibuja() {
   $('hist').classList.add('cargando');
   $('hAviso').textContent = '';
   let sa, sb;
+  const diario = hs.diario = hs.dias > 30 || !!A.diaria || !!B?.diaria;
   try {
-    [sa, sb] = await Promise.all([serieDe(hs.a, hs.dias), B ? serieDe(hs.b, hs.dias) : null]);
+    [sa, sb] = await Promise.all([serieDe(hs.a, hs.dias, diario), B ? serieDe(hs.b, hs.dias, diario) : null]);
   } catch (err) {
     if (yo === turno) { $('hAviso').textContent = 'No se han podido descargar los datos de Open-Meteo. Prueba de nuevo en un momento.'; $('hist').classList.remove('cargando'); }
     return;
   }
   if (yo !== turno) return;
   $('hist').classList.remove('cargando');
-  const diario = hs.dias > 30;
   // sin estacionalidad: cada día menos la media de su mes del año en el periodo (no se aplica a direcciones)
   if (hs.anom && hs.dias >= 365) {
     [sa, A] = anomalia(sa, A);
@@ -204,7 +221,7 @@ function resumen(s, V) {
   }
   let mn = s[0], mx = s[0], suma = 0;
   for (const p of s) { if (p.y < mn.y) mn = p; if (p.y > mx.y) mx = p; suma += p.y; }
-  const f = hs.dias > 30 ? t => fFecha(t, { day: 'numeric', month: 'short', year: 'numeric' }) : fHora;
+  const f = hs.diario ? t => fFecha(t, { day: 'numeric', month: 'short', year: 'numeric' }) : fHora;
   $('hStats').innerHTML = `<div><b>${fv(ult.y, V)}</b>último dato</div><div><b>${fv(suma / s.length, V)}</b>media del periodo</div>
     <div><b>${fv(mn.y, V)}</b>mínimo · ${f(mn.t)}</div><div><b>${fv(mx.y, V)}</b>máximo · ${f(mx.t)}</div>`;
 }
@@ -301,7 +318,7 @@ function grafCruce(sa, sb, A, B, diario) {
 
 $('hCsv').onclick = () => {
   if (!hs.datos) return;
-  const { A, B } = hs.datos, diario = hs.dias > 30;
+  const { A, B } = hs.datos, diario = hs.diario;
   const mb = new Map((hs.datos.sb || []).map(p => [p.t, p.y]));
   const cab = ['fecha', `${A.t}${A.u ? ` (${A.u})` : ''}`, ...(B ? [`${B.t}${B.u ? ` (${B.u})` : ''}`] : [])];
   const filas = hs.datos.sa.map(p => [diario ? iso(p.t) : new Date(p.t).toISOString().slice(0, 16).replace('T', ' '),

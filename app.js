@@ -165,6 +165,20 @@ const MODOS = {
     ley: { cat: [['A', '#00a651'], ['B', '#4cb848'], ['C', '#bfd730'], ['D', '#fff200'], ['E', '#fdb913'], ['F', '#f37021'], ['G', '#ed1c24'], ['Sin certificado', '#e4e6e8']],
            nota: 'Calificación de consumo de energía primaria no renovable del certificado energético más reciente de la parcela (registro andaluz de certificados energéticos).' },
   },
+  solar: {
+    color: ['case', ['has', 'cob'],
+            ['step', ['get', 'cob'], '#fff3c4', 25, '#fdd76b', 50, '#f9a825', 100, '#e07b00', 200, '#a64b00'],
+            ['has', 'kwp'], '#b9c4cf', sinDato],
+    ley: { cat: [['< 25 %', '#fff3c4'], ['25–50 %', '#fdd76b'], ['50–100 %', '#f9a825'], ['100–200 %', '#e07b00'], ['> 200 %', '#a64b00'], ['Sin viviendas', '#b9c4cf']],
+           nota: `Parte del consumo eléctrico de las viviendas del edificio que cubrirían placas solares en su cubierta. Estimación de primer orden:
+                  la mitad de la superficie en planta aprovechable, 0,2 kWp/m², producción de PVGIS para Marbella y 3.500 kWh/año por vivienda.
+                  No tiene en cuenta sombras de edificios vecinos ni la orientación de cada tejado. Pulsa un edificio para ver su potencia.` },
+  },
+  monte: {
+    color: ['case', ['has', 'dm'], ['interpolate', ['linear'], ['get', 'dm'], 0, '#b2182b', 100, '#ef8a62', 400, '#fddbc7'], '#e4e6e8'],
+    ley: { grad: 'linear-gradient(90deg,#b2182b,#ef8a62,#fddbc7)', de: '0 m', a: '400 m',
+           nota: 'Distancia del edificio al monte más cercano (arbolado y matorral de OpenStreetMap). En gris, a más de 400 m: fuera de la zona de influencia forestal.' },
+  },
 };
 let modo = 'uso';
 
@@ -199,8 +213,25 @@ map.on('load', () => {
                           'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 12, 0.6, 16, 1.4],
                           'heatmap-opacity': 0.75 } }, 'edificios');
 
+  // fotos aéreas históricas (evolución urbana), peligro de incendio, monte y focos
+  map.addSource('ortoHist', { type: 'raster', tiles: [wmsHist(VUELOS[0][1])], tileSize: 256, maxzoom: 19, attribution: 'Fotos aéreas históricas © IGN' });
+  map.addLayer({ id: 'ortoHist', type: 'raster', source: 'ortoHist', layout: { visibility: 'none' }, paint: { 'raster-fade-duration': 0 } }, 'base');
+  map.addSource('fwi', { type: 'raster', tiles: [effis('{bbox-epsg-3857}')], tileSize: 256, attribution: 'Peligro de incendio © EFFIS (Copernicus)' });
+  map.addLayer({ id: 'fwi', type: 'raster', source: 'fwi', layout: { visibility: 'none' }, paint: { 'raster-opacity': 0.55 } }, 'inunda');
+  const vacio = { type: 'FeatureCollection', features: [] };
+  map.addSource('monte', { type: 'geojson', data: vacio });
+  map.addSource('franjas', { type: 'geojson', data: vacio });
+  map.addLayer({ id: 'franjas', type: 'fill', source: 'franjas', layout: { visibility: 'none' },
+                 paint: { 'fill-color': ['match', ['get', 'franja'], 100, '#e63946', '#f4a261'], 'fill-opacity': 0.4 } }, 'fwi');
+  map.addLayer({ id: 'monte', type: 'fill', source: 'monte', layout: { visibility: 'none' }, paint: { 'fill-color': '#2d6a4f', 'fill-opacity': 0.4 } }, 'franjas');
+  map.addSource('focos', { type: 'geojson', data: vacio });
+  map.addLayer({ id: 'focos', type: 'circle', source: 'focos', layout: { visibility: 'none' },
+                 paint: { 'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 4, 14, 9], 'circle-stroke-width': 1.5, 'circle-stroke-color': '#fff',
+                          'circle-color': ['case', ['==', ['get', 'reciente'], true], '#d7191c', '#fdae61'] } });
+
   cargaVut();
   $('cSim').disabled = false;
+  $('cEvo').disabled = false;
   $('cargando').style.display = 'none';
 });
 
@@ -296,7 +327,11 @@ map.on('click', 'edificios', e => {
         <tr><td>Superficie construida</td><td>${p.sup ? fmt(p.sup) + ' m²' : '–'}</td></tr>
         <tr><td>Viviendas turísticas</td><td>${v ? `<b>${v.n}</b> (${fmt(v.plazas)} plazas)${pct != null ? ` · ${pct} % de las viviendas` : ''}` : 'Ninguna inscrita'}</td></tr>
         <tr><td>Certificado energético</td><td>${p.cee ? `<span class="letra" style="background:${COL[p.cee] || '#999'}">${esc(p.cee)}</span>` : 'Sin certificado registrado'}</td></tr>
+        <tr><td>Potencial solar de la cubierta</td><td>${p.kwp ? `${fmt(Math.round(p.kwp))} kWp · ${dec(p.kwp * PROD_KWP() / 1000, p.kwp * PROD_KWP() < 10000 ? 1 : 0)} MWh/año` +
+          (p.cob != null ? `<br>cubriría el ${fmt(p.cob)} % del consumo de sus viviendas` : '') : '–'}</td></tr>
+        <tr><td>Distancia al monte</td><td>${p.dm == null ? 'Más de 400 m' : p.dm < 1 ? 'Dentro del monte' : `${fmt(p.dm)} m`}${p.dm != null && p.dm <= 100 ? ' · <b>primera línea</b>' : ''}</td></tr>
       </table>
+      ${['E', 'F', 'G'].includes(p.cee) && p.cob >= 50 ? `<div class="sub" style="margin:-2px 0 8px">★ Buen candidato a placas solares: certificado ${esc(p.cee)} y una cubierta capaz de cubrir más de la mitad del consumo de sus viviendas.</div>` : ''}
       <div class="links">
         <a class="a1" target="_blank" href="https://www1.sedecatastro.gob.es/CYCBienInmueble/OVCListaBienes.aspx?rc1=${esc(rc.slice(0, 7))}&rc2=${esc(rc.slice(7, 14))}">Ficha del Catastro</a>
         ${v ? `<a target="_blank" href="${GH}/mapa-vut-marbella/">Mapa de VUT</a>` : ''}
@@ -322,8 +357,17 @@ $('irA').onclick = e => {
 };
 
 // ------------------------------------------------------------------ resumen y observatorios
+let RES = {};
+const PROD_KWP = () => RES.solar?.prod_kwp || 1572;
 fetch('data/resumen_base.json').then(r => r.json()).then(r => {
+  RES = r;
   $('kEdif').textContent = fmt(r.edificios); $('kViv').textContent = fmt(r.viviendas);
+  if (r.monte) $('monteNota').innerHTML = `A menos de 100 m del monte hay <b>${fmt(r.monte.edificios_100)}</b> edificios con <b>${fmt(r.monte.viviendas_100)}</b> viviendas;
+    a menos de 400 m (zona de influencia forestal), <b>${fmt(r.monte.edificios_400)}</b> edificios y <b>${fmt(r.monte.viviendas_400)}</b> viviendas.
+    Todo el término municipal es Zona de Peligro de incendios forestales. Monte: arbolado y matorral de OpenStreetMap.`;
+  if (r.solar) MODOS.solar.ley.nota += ` En todo el municipio: unos ${fmt(Math.round(r.solar.kwp_total / 1000))} MWp y ${fmt(Math.round(r.solar.gwh_total))} GWh/año, frente a ${fmt(Math.round(r.solar.consumo_viviendas_gwh))} GWh/año de consumo de las viviendas.`;
+  if (modo === 'solar' && map.isStyleLoaded()) aplicaModo('solar');
+  iniciaEvolucion();
   $('fuentes').innerHTML = fuentes(r);
 }).catch(() => { $('fuentes').innerHTML = fuentes({}); });
 
@@ -333,7 +377,11 @@ function fuentes(r) {
     Eficiencia energética: registro andaluz de certificados energéticos, por parcela.
     Ortofoto y mapa base: IGN. Relieve: Terrain Tiles (AWS). Batimetría: <a target="_blank" href="https://cdihm.cnig.es/CentroDescargasIHM/">Instituto Hidrográfico de la Marina</a> (modelo MBAR24, celda de 16 m) y, fuera de su cobertura, <a target="_blank" href="https://emodnet.ec.europa.eu/en/bathymetry">EMODnet</a> (~100 m).
     Indicadores: observatorios municipales de Marbella, sincronizados cada día.
-    Tiempo, mar y aire en vivo: <a target="_blank" href="https://open-meteo.com/">Open-Meteo</a> (modelos meteorológicos europeos y Copernicus), cada 15 minutos.`;
+    Tiempo, mar y aire en vivo: <a target="_blank" href="https://open-meteo.com/">Open-Meteo</a> (modelos meteorológicos europeos y Copernicus), cada 15 minutos.
+    Embalse: <a target="_blank" href="${GH}/observatorio-hidrico-concepcion/">observatorio hídrico de La Concepción</a> (REDIAM y Red Hidrosur).
+    Potencial solar: <a target="_blank" href="https://joint-research-centre.ec.europa.eu/photovoltaic-geographical-information-system-pvgis_en">PVGIS</a> (Comisión Europea) sobre la huella de los edificios del Catastro.
+    Incendios: peligro diario de <a target="_blank" href="https://forest-fire.emergency.copernicus.eu/">EFFIS</a> (Copernicus), focos de <a target="_blank" href="https://firms.modaps.eosdis.nasa.gov/">NASA FIRMS</a> cada 3 horas y monte de OpenStreetMap.
+    Fotos aéreas históricas: <a target="_blank" href="https://fototeca.cnig.es/">IGN</a>.`;
 }
 
 fetch('data/observatorios.json').then(r => r.json()).then(d => {
@@ -358,10 +406,11 @@ const dec = (n, d = 1) => n == null ? '–' : Number(n).toLocaleString('es-ES', 
 const H = id => `data-h="${id}" role="button" tabindex="0" title="Ver el histórico y cruzarlo con otros datos"`;
 async function cargaVivo() {
   const j = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
-  const [met, mar, aire] = await Promise.all([
+  const [met, mar, aire, emb, fwi] = await Promise.all([
     j(`https://api.open-meteo.com/v1/forecast?${OM}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m&daily=uv_index_max&forecast_days=1`),
     j('https://marine-api.open-meteo.com/v1/marine?latitude=36.49&longitude=-4.88&timezone=Europe%2FMadrid&current=wave_height,wave_period,wave_direction,sea_surface_temperature'),
     j(`https://air-quality-api.open-meteo.com/v1/air-quality?${OM}&current=european_aqi,pm10,nitrogen_dioxide`),
+    cargaEmbalse(), peligroHoy(),
   ]);
   const c = met?.current, m = mar?.current, a = aire?.current, cel = [];
   if (c) {
@@ -374,11 +423,173 @@ async function cargaVivo() {
   }
   if (a) cel.push(`<div ${H('ica')}><b>${dec(a.european_aqi, 0)}</b>Calidad del aire <em>${ICA(a.european_aqi)}</em> · NO₂ ${dec(a.nitrogen_dioxide, 0)} µg/m³</div>`);
   if (met?.daily) cel.push(`<div ${H('uv')}><b>${dec(met.daily.uv_index_max[0], 0)}</b>Índice UV máximo de hoy</div>`);
+  if (emb?.embalse) cel.push(`<div ${H('embalse')}><b>${dec(emb.embalse.porcentaje, 0)} %</b>Embalse de La Concepción · ${dec(emb.embalse.volumen)} hm³</div>`);
+  if (fwi) cel.push(`<div class="${fwi.i >= 2 ? 'alerta' : ''}" data-capa="fwi" role="button" tabindex="0" title="Ver el mapa de peligro de incendio"><b>${fwi.t}</b>Peligro de incendio hoy en Sierra Blanca</div>`);
   $('vivo').innerHTML = cel.length ? cel.join('') : '<div>Sin conexión con Open-Meteo.</div>';
   if (c) $('vivoHora').textContent = c.time.slice(11, 16) + ' h';
 }
-cargaVivo();
 setInterval(cargaVivo, 15 * 60 * 1000);
+$('vivo').addEventListener('click', e => {
+  if (!e.target.closest('[data-capa="fwi"]') || !map.isStyleLoaded()) return;
+  $('cFwi').checked = true; $('cFwi').onchange({ target: $('cFwi') });
+});
+
+// embalse: datos del observatorio hídrico (window.DATOS de su data.js); historico.js también los usa
+let embalse = null;
+async function cargaEmbalse() {
+  try {
+    const t = await (await fetch(`${GH}/observatorio-hidrico-concepcion/data/data.js`)).text();
+    return embalse = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
+  } catch { return embalse; }
+}
+
+// peligro de incendio de hoy: color del píxel del mapa FWI de EFFIS sobre Sierra Blanca
+const FWI_CLASES = [['Bajo', [156, 255, 192]], ['Moderado', [205, 226, 78]], ['Alto', [230, 172, 0]], ['Muy alto', [217, 112, 16]],
+                    ['Extremo', [173, 6, 14]], ['Muy extremo', [75, 0, 20]]];
+const merc = (lon, lat) => [lon * 20037508.34 / 180, Math.log(Math.tan((90 + lat) * Math.PI / 360)) * 20037508.34 / Math.PI];
+const hoyUTC = () => new Date().toISOString().slice(0, 10);
+function effis(bbox) {
+  return `https://maps.effis.emergency.copernicus.eu/effis?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=mf010.fwi&STYLES=&SRS=EPSG:3857` +
+    `&BBOX=${bbox}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true&TIME=${hoyUTC()}`;
+}
+async function peligroHoy() {
+  try {
+    const [x, y] = merc(-4.905, 36.535), d = 600;
+    const bmp = await createImageBitmap(await (await fetch(effis([x - d, y - d, x + d, y + d].join(',')))).blob());
+    const cv = new OffscreenCanvas(bmp.width, bmp.height), cx = cv.getContext('2d');
+    cx.drawImage(bmp, 0, 0);
+    const [r, g, b, a] = cx.getImageData(bmp.width >> 1, bmp.height >> 1, 1, 1).data;
+    if (a < 128) return null;
+    let mejor = 0, dist = Infinity;
+    FWI_CLASES.forEach(([, c], i) => { const dd = (c[0] - r) ** 2 + (c[1] - g) ** 2 + (c[2] - b) ** 2; if (dd < dist) { dist = dd; mejor = i; } });
+    return { t: FWI_CLASES[mejor][0], i: mejor };
+  } catch { return null; }
+}
+
+// ------------------------------------------------------------------ riesgo de incendio forestal
+const DIA_MS = 86400000;
+const vistaComarca = () => { if (map.getZoom() > 11.5) map.flyTo({ center: [-4.93, 36.53], zoom: 10.8, pitch: 45, bearing: -10, duration: 2500 }); };
+$('cFwi').onchange = e => {
+  map.setLayoutProperty('fwi', 'visibility', e.target.checked ? 'visible' : 'none');
+  $('leyFwi').style.display = e.target.checked ? '' : 'none';
+  if (e.target.checked) vistaComarca();
+};
+let focosCargados = false;
+$('cFocos').onchange = async e => {
+  map.setLayoutProperty('focos', 'visibility', e.target.checked ? 'visible' : 'none');
+  $('leyFocos').style.display = e.target.checked ? '' : 'none';
+  if (!e.target.checked) return;
+  vistaComarca();
+  if (focosCargados) return;
+  focosCargados = true;                               // una sola descarga aunque se marque dos veces seguidas
+  try {
+    const d = await (await fetch('data/capas/focos.geojson')).json(), hace24 = Date.now() - DIA_MS;
+    d.features.forEach(f => f.properties.reciente = Date.parse(f.properties.fecha) >= hace24);
+    map.getSource('focos').setData(d);
+    const n24 = d.features.filter(f => f.properties.reciente).length;
+    $('focosNota').innerHTML = `<b>${fmt(d.features.length)}</b> focos en la zona en los últimos 7 días${n24 ? `, <b>${n24}</b> en las últimas 24 h` : ''}.
+      Actualizado el ${new Date(d.actualizado.replace('Z', ':00Z')).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}.<br>` + $('focosNota').innerHTML;
+  } catch (err) { focosCargados = false; console.error('focos', err); }
+};
+const popFoco = new maplibregl.Popup({ closeButton: false, className: 'cota' });
+map.on('click', 'focos', e => {
+  const p = e.features[0].properties;
+  popFoco.setLngLat(e.lngLat).setHTML(`<b>Foco de calor</b><br>${new Date(p.fecha).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}
+    <br>${esc(p.satelite)} · confianza ${esc(p.confianza)}${p.frp ? `<br>Potencia radiada: ${dec(p.frp)} MW` : ''}`).addTo(map);
+});
+map.on('mouseenter', 'focos', () => map.getCanvas().style.cursor = 'pointer');
+map.on('mouseleave', 'focos', () => map.getCanvas().style.cursor = '');
+let monteCargado = false;
+$('cMonte').onchange = e => {
+  ['monte', 'franjas'].forEach(l => map.setLayoutProperty(l, 'visibility', e.target.checked ? 'visible' : 'none'));
+  $('leyMonte').style.display = e.target.checked ? '' : 'none';
+  if (e.target.checked && !monteCargado) {
+    map.getSource('monte').setData('data/capas/monte.geojson');
+    map.getSource('franjas').setData('data/capas/franjas_monte.geojson');
+    monteCargado = true;
+  }
+  if (e.target.checked && map.getZoom() > 14) map.flyTo({ center: [-4.90, 36.525], zoom: 13.4, pitch: 55, bearing: -10, duration: 2500 });
+};
+
+// ------------------------------------------------------------------ evolución urbana
+// vuelos fotogramétricos históricos del IGN (servicio WMS pnoa-historico): [primer año que representa, capa, nombre]
+const VUELOS = [[0, 'AMS_1956-1957', 'vuelo americano, 1956'], [1973, 'Interministerial_1973-1986', 'interministerial, 1973-86'],
+                [1981, 'Nacional_1981-1986', 'nacional, 1981-86'], [1997, 'SIGPAC', 'SIGPAC, 1997-2003'],
+                ...Array.from({ length: 21 }, (_, i) => [2004 + i, `PNOA${2004 + i}`, `PNOA ${2004 + i}`])];
+const wmsHist = capa => `https://www.ign.es/wms/pnoa-historico?SERVICE=WMS&REQUEST=GetMap&VERSION=1.1.1&LAYERS=${capa}&STYLES=` +
+  `&SRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/jpeg`;
+const vueloDe = y => VUELOS.reduce((v, x) => x[0] <= y ? x : v, VUELOS[0]);
+let anioEvo = 2025, vueloActual = null, grafEvo = null, reproduciendo = null, acumulado = [];
+
+function iniciaEvolucion() {
+  const pa = RES.por_anio;
+  if (!pa) return;
+  const anios = Object.keys(pa).map(Number), max = Math.max(...anios);
+  $('evoR').max = max; $('evoR').min = 1900; $('evoR').value = anioEvo = max;
+  let e = 0, v = 0;
+  acumulado = [];
+  for (let y = Math.min(...anios); y <= max; y++) { e += pa[y]?.[0] || 0; v += pa[y]?.[1] || 0; acumulado[y] = [e, v]; }
+  const ys = Array.from({ length: max - 1900 + 1 }, (_, i) => 1900 + i);
+  grafEvo = new Chart($('evoG'), {
+    type: 'bar',
+    data: { labels: ys, datasets: [{ data: ys.map(y => pa[y]?.[1] || 0), backgroundColor: ys.map(() => '#1044CD'), barPercentage: 1, categoryPercentage: 1 }] },
+    options: { animation: false, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { displayColors: false, callbacks: {
+        title: it => `${it[0].label}`, label: it => `${fmt(it.raw)} viviendas · ${fmt(pa[it.label]?.[0] || 0)} edificios` } } },
+      scales: { x: { grid: { display: false }, ticks: { color: '#646b73', font: { size: 10 }, maxRotation: 0, autoSkip: false,
+                       callback: (v, i) => ys[i] % 25 === 0 ? ys[i] : '' } },
+                y: { display: false, beginAtZero: true } },
+      onClick: (ev, el) => { if (el.length) { paraEvo(); ponAnio(ys[el[0].index]); } } },
+  });
+  ponAnio(max, true);
+}
+
+function ponAnio(y, sinMapa) {
+  anioEvo = y;
+  $('evoR').value = y; $('evoA').textContent = y;
+  const a = acumulado[y] || [0, 0], tot = acumulado[acumulado.length - 1] || [1, 1];
+  $('evoE').textContent = fmt(a[0]); $('evoV').textContent = fmt(a[1]);
+  $('evoP').textContent = Math.round(a[1] / tot[1] * 100) + ' %';
+  if (grafEvo) {
+    grafEvo.data.datasets[0].backgroundColor = grafEvo.data.labels.map(l => l <= y ? '#1044CD' : '#d5dbe3');
+    grafEvo.update('none');
+  }
+  if (sinMapa || !$('cEvo').checked) return;
+  const max = +$('evoR').max;
+  map.setFilter('edificios', y >= max ? null : ['all', ['has', 'anio'], ['<=', ['get', 'anio'], y]]);
+  const v = vueloDe(y);
+  $('evoVuelo').textContent = `(${v[2]})`;
+  if ($('cEvoOrto').checked && v !== vueloActual) {
+    vueloActual = v;
+    map.getSource('ortoHist').setTiles([wmsHist(v[1])]);
+  }
+}
+
+function muestraOrtoEvo() {
+  const on = $('cEvo').checked && $('cEvoOrto').checked;
+  map.setLayoutProperty('ortoHist', 'visibility', on ? 'visible' : 'none');
+  map.setLayoutProperty('orto', 'visibility', !on && $('cOrto').checked ? 'visible' : 'none');
+  if (on) { vueloActual = null; ponAnio(anioEvo); }
+}
+function paraEvo() { clearInterval(reproduciendo); reproduciendo = null; $('evoPlay').classList.remove('on'); $('evoPlay').textContent = '▶'; }
+
+$('cEvo').onchange = e => {
+  const on = e.target.checked;
+  $('evoCtl').classList.toggle('off', !on);
+  if (!on) { paraEvo(); map.setFilter('edificios', null); muestraOrtoEvo(); return; }
+  muestraOrtoEvo();
+  ponAnio(anioEvo);
+  if (map.getZoom() < 13.2 || map.getZoom() > 15.5) map.flyTo({ center: [-4.905, 36.505], zoom: 13.6, pitch: 55, bearing: -15, duration: 2500 });
+};
+$('cEvoOrto').onchange = muestraOrtoEvo;
+$('evoR').oninput = e => { paraEvo(); ponAnio(+e.target.value); };
+$('evoPlay').onclick = () => {
+  if (reproduciendo) return paraEvo();
+  const max = +$('evoR').max;
+  if (anioEvo >= max) ponAnio(1950);
+  $('evoPlay').classList.add('on'); $('evoPlay').textContent = '❚❚';
+  reproduciendo = setInterval(() => { if (anioEvo >= max) return paraEvo(); ponAnio(anioEvo + 1); }, 350);
+};
 
 // ------------------------------------------------------------------ simulación: subida del nivel del mar
 let nivel = 0, inundados = new Set(), versionSim = 0, temporizador = null;
@@ -460,3 +671,6 @@ map.on('moveend', () => { if (simActiva()) programaRecuento(); });
 $('simNota').innerHTML = NOTA_SIM;
 
 $('toggle').onclick =() => { $('panel').classList.toggle('min'); $('toggle').textContent = $('panel').classList.contains('min') ? 'mostrar' : 'ocultar'; };
+
+// primera carga del panel en vivo, cuando ya están definidas todas las funciones y constantes
+cargaVivo();
