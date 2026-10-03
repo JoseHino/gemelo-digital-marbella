@@ -354,6 +354,8 @@ const VIENTO_LOCAL = g => g >= 45 && g <= 135 ? ' · levante' : g >= 225 && g <=
 const ICA = v => v <= 20 ? 'buena' : v <= 40 ? 'razonable' : v <= 60 ? 'regular' : v <= 80 ? 'mala' : v <= 100 ? 'muy mala' : 'extremadamente mala';
 const dec = (n, d = 1) => n == null ? '–' : Number(n).toLocaleString('es-ES', { maximumFractionDigits: d, minimumFractionDigits: d });
 
+// cada tarjeta abre su histórico (historico.js)
+const H = id => `data-h="${id}" role="button" tabindex="0" title="Ver el histórico y cruzarlo con otros datos"`;
 async function cargaVivo() {
   const j = u => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
   const [met, mar, aire] = await Promise.all([
@@ -363,15 +365,15 @@ async function cargaVivo() {
   ]);
   const c = met?.current, m = mar?.current, a = aire?.current, cel = [];
   if (c) {
-    cel.push(`<div><b>${dec(c.temperature_2m)} °C</b>${esc(CIELO[c.weather_code] || '')} · sensación ${dec(c.apparent_temperature, 0)} °C</div>`);
-    cel.push(`<div><b>${dec(c.wind_speed_10m, 0)} km/h</b>Viento del ${RUMBO(c.wind_direction_10m)}${VIENTO_LOCAL(c.wind_direction_10m)} · rachas ${dec(c.wind_gusts_10m, 0)}</div>`);
+    cel.push(`<div ${H('temp')}><b>${dec(c.temperature_2m)} °C</b>${esc(CIELO[c.weather_code] || '')} · sensación ${dec(c.apparent_temperature, 0)} °C</div>`);
+    cel.push(`<div ${H('viento')}><b>${dec(c.wind_speed_10m, 0)} km/h</b>Viento del ${RUMBO(c.wind_direction_10m)}${VIENTO_LOCAL(c.wind_direction_10m)} · rachas ${dec(c.wind_gusts_10m, 0)}</div>`);
   }
   if (m) {
-    cel.push(`<div><b>${dec(m.wave_height)} m</b>Oleaje del ${RUMBO(m.wave_direction)} · periodo ${dec(m.wave_period, 0)} s</div>`);
-    cel.push(`<div><b>${dec(m.sea_surface_temperature)} °C</b>Temperatura del agua del mar</div>`);
+    cel.push(`<div ${H('ola')}><b>${dec(m.wave_height)} m</b>Oleaje del ${RUMBO(m.wave_direction)} · periodo ${dec(m.wave_period, 0)} s</div>`);
+    cel.push(`<div ${H('sst')}><b>${dec(m.sea_surface_temperature)} °C</b>Temperatura del agua del mar</div>`);
   }
-  if (a) cel.push(`<div><b>${dec(a.european_aqi, 0)}</b>Calidad del aire <em>${ICA(a.european_aqi)}</em> · NO₂ ${dec(a.nitrogen_dioxide, 0)} µg/m³</div>`);
-  if (met?.daily) cel.push(`<div><b>${dec(met.daily.uv_index_max[0], 0)}</b>Índice UV máximo de hoy</div>`);
+  if (a) cel.push(`<div ${H('ica')}><b>${dec(a.european_aqi, 0)}</b>Calidad del aire <em>${ICA(a.european_aqi)}</em> · NO₂ ${dec(a.nitrogen_dioxide, 0)} µg/m³</div>`);
+  if (met?.daily) cel.push(`<div ${H('uv')}><b>${dec(met.daily.uv_index_max[0], 0)}</b>Índice UV máximo de hoy</div>`);
   $('vivo').innerHTML = cel.length ? cel.join('') : '<div>Sin conexión con Open-Meteo.</div>';
   if (c) $('vivoHora').textContent = c.time.slice(11, 16) + ' h';
 }
