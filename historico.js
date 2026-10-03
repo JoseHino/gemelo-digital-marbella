@@ -87,12 +87,18 @@ function descargaApi(api, dias) {
 async function descargaEmbalse(dias) {
   const d = embalse || await cargaEmbalse();
   if (!d) throw new Error('embalse: sin datos');
-  const ini = ms(hoyMadrid().slice(0, 10)) - dias * DIA, mapa = (x, ys) => {
-    const m = new Map();
-    x.forEach((f, i) => { const t = ms(f); if (ys[i] != null && t >= ini) m.set(t, ys[i]); });
+  const ini = ms(hoyMadrid().slice(0, 10)) - dias * DIA;
+  // serie diaria: con fechas explícitas (x) o con fecha de inicio y un valor por día
+  const mapa = (x, ys, inicio) => {
+    const m = new Map(), t0 = inicio ? ms(inicio) : 0;
+    ys.forEach((y, i) => { const t = x ? ms(x[i]) : t0 + i * DIA; if (y != null && t >= ini) m.set(t, y); });
     return m;
   };
-  return { porcentaje: mapa(d.diario.x, d.diario.porcentaje), lluvia: mapa(d.lluvia.diario.x, d.lluvia.diario[d.lluvia.ref]) };
+  // estructura actual del observatorio (embalse_diario desde 1970, lluvia_diaria desde 2000) y, por si acaso, la anterior
+  const e = d.embalse_diario, l = d.lluvia_diaria;
+  if (e && l) return { porcentaje: mapa(null, e.porcentaje, e.inicio), lluvia: mapa(null, l.series[l.ref], l.inicio) };
+  if (d.diario && d.lluvia) return { porcentaje: mapa(d.diario.x, d.diario.porcentaje), lluvia: mapa(d.lluvia.diario.x, d.lluvia.diario[d.lluvia.ref]) };
+  throw new Error('embalse: estructura de datos desconocida');
 }
 
 // serie [{t, y}] de una variable: horaria si el rango es corto, diaria si es largo (o si la otra variable es diaria)
