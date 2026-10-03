@@ -76,6 +76,9 @@ print(f"Parcelas a menos de {DIST_MAX} m del monte: {len(dist_monte)}", flush=Tr
 
 partes = partes.to_crs(4326)
 cee = json.load(open(os.path.join(BASE, "data", "cee_parcela.json"), encoding="utf8"))
+# ciudad de 15 minutos (scripts/construir_15min.py): minutos a pie a cada tipo de servicio
+ruta_q = os.path.join(BASE, "data", "quince_parcela.json")
+quince = json.load(open(ruta_q)) if os.path.exists(ruta_q) else {}
 
 
 def entero(v):
@@ -111,6 +114,11 @@ with open(OUT, "w", encoding="utf8") as f:
                 p["cob"] = min(999, round(kwp * PROD_KWP / (p["viv"] * CONSUMO_VIV) * 100))
         if rc in dist_monte.index:
             p["dm"] = int(round(dist_monte[rc]))
+        if rc in quince:                       # t1..t7: minutos a pie a cada servicio; q: cuántos a 15 min o menos
+            for i, m in enumerate(quince[rc]):
+                if m is not None:
+                    p[f"t{i + 1}"] = m
+            p["q"] = sum(1 for m in quince[rc] if m is not None and m <= 15)
         g = mapping(geom)
         # coordenadas a 6 decimales (~10 cm)
         def red(c):

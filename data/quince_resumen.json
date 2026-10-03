@@ -1,0 +1,52 @@
+{
+ "tipos": [
+  [
+   "salud",
+   "Centro de salud u hospital"
+  ],
+  [
+   "farmacia",
+   "Farmacia"
+  ],
+  [
+   "colegio",
+   "Colegio o escuela infantil"
+  ],
+  [
+   "super",
+   "Supermercado o tienda de alimentación"
+  ],
+  [
+   "bus",
+   "Parada de autobús"
+  ],
+  [
+   "parque",
+   "Parque o zona verde"
+  ],
+  [
+   "playa",
+   "Playa"
+  ]
+ ],
+ "servicios": {
+  "salud": 24,
+  "farmacia": 62,
+  "colegio": 65,
+  "super": 132,
+  "bus": 319,
+  "parque": 777,
+  "playa": 36
+ },
+ "parcelas": 19586,
+ "por_n_servicios": {
+  "0": 2007,
+  "1": 705,
+  "2": 1308,
+  "3": 1433,
+  "4": 3131,
+  "5": 1838,
+  "6": 5313,
+  "7": 3851
+ }
+}
