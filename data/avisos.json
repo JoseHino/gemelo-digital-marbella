@@ -1,4 +1,19 @@
 {
- "actualizado": "2026-10-03T15:12Z",
- "avisos": []
+ "actualizado": "2026-10-04T08:17Z",
+ "avisos": [
+  {
+   "zona": "Sol y Guadalhorce",
+   "nivel": "amarillo",
+   "fenomeno": "tormentas",
+   "inicio": "2026-10-04T08:00:00+00:00",
+   "fin": "2026-10-04T14:59:59+00:00"
+  },
+  {
+   "zona": "Sol y Guadalhorce",
+   "nivel": "amarillo",
+   "fenomeno": "lluvia",
+   "inicio": "2026-10-04T08:00:00+00:00",
+   "fin": "2026-10-04T14:59:59+00:00"
+  }
+ ]
 }
