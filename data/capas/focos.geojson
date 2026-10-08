@@ -1,1 +1,1 @@
-{"type":"FeatureCollection","actualizado":"2026-10-05T05:51Z","fallos":[],"features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[-4.7983,36.5016]},"properties":{"fecha":"2026-09-30T02:58Z","satelite":"VIIRS NOAA-20","confianza":"nominal","frp":0.62,"dia":false}},{"type":"Feature","geometry":{"type":"Point","coordinates":[-4.7947,36.5007]},"properties":{"fecha":"2026-09-30T02:58Z","satelite":"VIIRS NOAA-20","confianza":"nominal","frp":0.62,"dia":false}}]}
+{"type":"FeatureCollection","actualizado":"2026-10-08T10:43Z","fallos":[],"features":[]}
