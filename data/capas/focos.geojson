@@ -1,1 +1,1 @@
-{"type":"FeatureCollection","actualizado":"2026-10-08T10:43Z","fallos":[],"features":[]}
+{"type":"FeatureCollection","actualizado":"2026-10-08T18:53Z","fallos":[],"features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[-4.5075,36.7015]},"properties":{"fecha":"2026-10-08T13:27Z","satelite":"VIIRS NOAA-20","confianza":"nominal","frp":1.84,"dia":true}}]}
