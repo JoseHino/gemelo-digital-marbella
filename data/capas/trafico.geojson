@@ -1,1 +1,1 @@
-{"type":"FeatureCollection","actualizado":"2026-10-17T00:43Z","features":[]}
+{"type":"FeatureCollection","actualizado":"2026-10-17T09:37Z","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[-5.0525002,36.4588]},"properties":{"tipo":"Vehículo detenido","via":"A-7","km":"1060.064","municipio":"Estepona","gravedad":1,"desde":"2026-10-17T10:59:00.000+02:00","punto":true}}]}
