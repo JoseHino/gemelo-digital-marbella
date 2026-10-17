@@ -1,8 +1,36 @@
 {
- "actualizado": "2026-10-17T21:39Z",
+ "actualizado": "2026-10-17T23:54Z",
  "avisos": [
   {
    "zona": "Sol y Guadalhorce",
+   "nivel": "naranja",
+   "fenomeno": "lluvia",
+   "inicio": "2026-10-17T22:00:00+00:00",
+   "fin": "2026-10-18T00:59:59+00:00"
+  },
+  {
+   "zona": "Sol y Guadalhorce",
+   "nivel": "amarillo",
+   "fenomeno": "tormentas",
+   "inicio": "2026-10-17T22:00:00+00:00",
+   "fin": "2026-10-18T00:59:59+00:00"
+  },
+  {
+   "zona": "Sol y Guadalhorce",
+   "nivel": "amarillo",
+   "fenomeno": "lluvia",
+   "inicio": "2026-10-19T06:00:00+00:00",
+   "fin": "2026-10-19T15:59:59+00:00"
+  },
+  {
+   "zona": "Sol y Guadalhorce",
+   "nivel": "amarillo",
+   "fenomeno": "tormentas",
+   "inicio": "2026-10-19T06:00:00+00:00",
+   "fin": "2026-10-19T15:59:59+00:00"
+  },
+  {
+   "zona": "Sol y Guadalhorce",
    "nivel": "amarillo",
    "fenomeno": "lluvia",
    "inicio": "2026-10-18T04:00:00+00:00",
@@ -14,20 +42,6 @@
    "fenomeno": "tormentas",
    "inicio": "2026-10-18T04:00:00+00:00",
    "fin": "2026-10-18T15:59:59+00:00"
-  },
-  {
-   "zona": "Sol y Guadalhorce",
-   "nivel": "amarillo",
-   "fenomeno": "lluvia",
-   "inicio": "2026-10-17T10:00:00+00:00",
-   "fin": "2026-10-17T21:59:59+00:00"
-  },
-  {
-   "zona": "Sol y Guadalhorce",
-   "nivel": "amarillo",
-   "fenomeno": "tormentas",
-   "inicio": "2026-10-17T10:00:00+00:00",
-   "fin": "2026-10-17T21:59:59+00:00"
   }
  ]
 }
