@@ -1,1 +1,1 @@
-{"type":"FeatureCollection","actualizado":"2026-10-28T13:25Z","features":[]}
+{"type":"FeatureCollection","actualizado":"2026-10-28T19:02Z","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[-4.8644633,36.55547]},"properties":{"tipo":"Vehículo detenido","via":"A-355","km":"29.36","municipio":"Ojén","gravedad":1,"desde":"2026-10-28T19:15:55.000+01:00","punto":true}}]}
