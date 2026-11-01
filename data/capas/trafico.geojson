@@ -1,1 +1,1 @@
-{"type":"FeatureCollection","actualizado":"2026-11-01T05:36Z","features":[]}
+{"type":"FeatureCollection","actualizado":"2026-11-01T22:20Z","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[-4.8024344,36.516804]},"properties":{"tipo":"Vehículo detenido","via":"AP-7","km":"1034.456","municipio":"Marbella","gravedad":1,"desde":"2026-11-01T22:19:22.000+01:00","punto":true}}]}
