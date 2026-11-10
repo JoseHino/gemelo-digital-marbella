@@ -1,6 +1,13 @@
 {
- "actualizado": "2026-11-10T03:21Z",
+ "actualizado": "2026-11-10T11:38Z",
  "avisos": [
+  {
+   "zona": "Sol y Guadalhorce",
+   "nivel": "amarillo",
+   "fenomeno": "viento",
+   "inicio": "2026-11-11T14:00:00+00:00",
+   "fin": "2026-11-11T22:59:59+00:00"
+  },
   {
    "zona": "Sol y Guadalhorce",
    "nivel": "amarillo",
@@ -10,9 +17,9 @@
   },
   {
    "zona": "Sol y Guadalhorce",
-   "nivel": "amarillo",
+   "nivel": "naranja",
    "fenomeno": "lluvia",
-   "inicio": "2026-11-10T23:00:00+00:00",
+   "inicio": "2026-11-11T11:00:00+00:00",
    "fin": "2026-11-11T22:59:59+00:00"
   }
  ]
