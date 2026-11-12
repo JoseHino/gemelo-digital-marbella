@@ -1,33 +1,4 @@
 {
- "actualizado": "2026-11-11T22:38Z",
- "avisos": [
-  {
-   "zona": "Costa - Sol y Guadalhorce",
-   "nivel": "amarillo",
-   "fenomeno": "fenómenos costeros",
-   "inicio": "2026-11-11T21:00:00+00:00",
-   "fin": "2026-11-12T02:59:59+00:00"
-  },
-  {
-   "zona": "Sol y Guadalhorce",
-   "nivel": "amarillo",
-   "fenomeno": "viento",
-   "inicio": "2026-11-11T14:00:00+00:00",
-   "fin": "2026-11-11T22:59:59+00:00"
-  },
-  {
-   "zona": "Sol y Guadalhorce",
-   "nivel": "amarillo",
-   "fenomeno": "lluvia",
-   "inicio": "2026-11-11T11:00:00+00:00",
-   "fin": "2026-11-11T22:59:59+00:00"
-  },
-  {
-   "zona": "Sol y Guadalhorce",
-   "nivel": "naranja",
-   "fenomeno": "lluvia",
-   "inicio": "2026-11-11T11:00:00+00:00",
-   "fin": "2026-11-11T22:59:59+00:00"
-  }
- ]
+ "actualizado": "2026-11-12T03:42Z",
+ "avisos": []
 }
