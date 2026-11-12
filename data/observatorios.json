@@ -1,5 +1,5 @@
 {
- "actualizado": "2026-11-12T14:00Z",
+ "actualizado": "2026-11-12T20:48Z",
  "observatorios": [
   {
    "nombre": "Mapa de VUT",
@@ -7,20 +7,20 @@
    "kpis": [
     {
      "etiqueta": "Viviendas de uso turístico",
-     "valor": 15706.0,
+     "valor": 15708.0,
      "unidad": "",
      "periodo": "2026-11-12"
     },
     {
      "etiqueta": "Plazas en VUT",
-     "valor": 91736.0,
+     "valor": 91754.0,
      "unidad": "",
      "periodo": "2026-11-12"
     }
    ],
    "id": "vut",
    "ok": true,
-   "comprobado": "2026-11-12T14:00Z"
+   "comprobado": "2026-11-12T20:48Z"
   },
   {
    "nombre": "Observatorio Turístico",
@@ -41,7 +41,7 @@
    ],
    "id": "turismo",
    "ok": true,
-   "comprobado": "2026-11-12T14:00Z"
+   "comprobado": "2026-11-12T20:48Z"
   },
   {
    "nombre": "Dashboard DTI",
@@ -98,7 +98,7 @@
    ],
    "id": "dti",
    "ok": true,
-   "comprobado": "2026-11-12T14:00Z"
+   "comprobado": "2026-11-12T20:48Z"
   },
   {
    "nombre": "Observatorio de Tráfico",
@@ -125,7 +125,7 @@
    ],
    "id": "trafico",
    "ok": true,
-   "comprobado": "2026-11-12T14:00Z"
+   "comprobado": "2026-11-12T20:48Z"
   },
   {
    "nombre": "Observatorio Ambiental",
@@ -158,7 +158,7 @@
    ],
    "id": "ambiental",
    "ok": true,
-   "comprobado": "2026-11-12T14:00Z"
+   "comprobado": "2026-11-12T20:48Z"
   },
   {
    "nombre": "Observatorio de Residuos",
@@ -173,7 +173,7 @@
    ],
    "id": "residuos",
    "ok": true,
-   "comprobado": "2026-11-12T14:00Z"
+   "comprobado": "2026-11-12T20:48Z"
   }
  ]
 }
