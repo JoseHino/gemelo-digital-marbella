@@ -24,7 +24,7 @@
   },
   {
    "nombre": "Observatorio Turístico",
-   "url": "https://josehino.github.io/observatorio-turistico-marbella/",
+   "url": "https://ammaconsulting.github.io/observatorio-turistico-marbella/",
    "kpis": [
     {
      "etiqueta": "Viajeros (último mes)",
@@ -45,7 +45,7 @@
   },
   {
    "nombre": "Dashboard DTI",
-   "url": "https://josehino.github.io/dashboard-dti-marbella/",
+   "url": "https://ammaconsulting.github.io/dashboard-dti-marbella/",
    "kpis": [
     {
      "etiqueta": "Viajeros alojados",
@@ -102,7 +102,7 @@
   },
   {
    "nombre": "Observatorio de Tráfico",
-   "url": "https://josehino.github.io/observatorio-trafico-marbella/",
+   "url": "https://ammaconsulting.github.io/observatorio-trafico-marbella/",
    "kpis": [
     {
      "etiqueta": "Parque de vehículos",
@@ -129,7 +129,7 @@
   },
   {
    "nombre": "Observatorio Ambiental",
-   "url": "https://josehino.github.io/observatorio-ambiental-marbella/",
+   "url": "https://ammaconsulting.github.io/observatorio-ambiental-marbella/",
    "kpis": [
     {
      "etiqueta": "Cobertura vegetal",
@@ -162,7 +162,7 @@
   },
   {
    "nombre": "Observatorio de Residuos",
-   "url": "https://josehino.github.io/observatorio-residuos-marbella/",
+   "url": "https://ammaconsulting.github.io/observatorio-residuos-marbella/",
    "kpis": [
     {
      "etiqueta": "Residuos por habitante",
