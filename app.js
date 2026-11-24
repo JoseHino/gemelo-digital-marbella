@@ -2,6 +2,7 @@
 // Edificios 3D (Catastro INSPIRE, teselas PMTiles) + VUT diarias (mapa de VUT) + observatorios municipales.
 
 const GH = 'https://josehino.github.io';
+const GHA = 'https://ammaconsulting.github.io'; // observatorios trasladados a AMMA
 const VUT_INDEX = `${GH}/mapa-vut-marbella/vut_index.json`;           // rc18 -> [registro(s), plazas, alta, nº VUT]
 const VUT_PUNTOS = `${GH}/mapa-vut-marbella/VUT_Marbella_geolocalizadas.csv`;
 const fmt = n => (n == null || isNaN(n)) ? '–' : Number(n).toLocaleString('es-ES');
@@ -423,7 +424,7 @@ function fuentes(r) {
     Ortofoto y mapa base: IGN. Relieve: Terrain Tiles (AWS). Batimetría: <a target="_blank" href="https://cdihm.cnig.es/CentroDescargasIHM/">Instituto Hidrográfico de la Marina</a> (modelo MBAR24, celda de 16 m) y, fuera de su cobertura, <a target="_blank" href="https://emodnet.ec.europa.eu/en/bathymetry">EMODnet</a> (~100 m).
     Indicadores: observatorios municipales de Marbella, sincronizados cada día.
     Tiempo, mar y aire en vivo: <a target="_blank" href="https://open-meteo.com/">Open-Meteo</a> (modelos meteorológicos europeos y Copernicus), cada 15 minutos.
-    Embalse: <a target="_blank" href="${GH}/observatorio-hidrico-concepcion/">observatorio hídrico de La Concepción</a> (REDIAM y Red Hidrosur).
+    Embalse: <a target="_blank" href="${GHA}/observatorio-hidrico-concepcion/">observatorio hídrico de La Concepción</a> (REDIAM y Red Hidrosur).
     Potencial solar: <a target="_blank" href="https://joint-research-centre.ec.europa.eu/photovoltaic-geographical-information-system-pvgis_en">PVGIS</a> (Comisión Europea) sobre la huella de los edificios del Catastro.
     Incendios: peligro diario de <a target="_blank" href="https://forest-fire.emergency.copernicus.eu/">EFFIS</a> (Copernicus), focos de <a target="_blank" href="https://firms.modaps.eosdis.nasa.gov/">NASA FIRMS</a> cada 3 horas y monte de OpenStreetMap.
     Fotos aéreas históricas: <a target="_blank" href="https://fototeca.cnig.es/">IGN</a>.
@@ -548,7 +549,7 @@ map.on('mouseleave', 'trafico', () => map.getCanvas().style.cursor = '');
 let embalse = null;
 async function cargaEmbalse() {
   try {
-    const t = await (await fetch(`${GH}/observatorio-hidrico-concepcion/data/data.js`)).text();
+    const t = await (await fetch(`${GHA}/observatorio-hidrico-concepcion/data/data.js`)).text();
     return embalse = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
   } catch { return embalse; }
 }

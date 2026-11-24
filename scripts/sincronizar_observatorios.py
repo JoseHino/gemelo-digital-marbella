@@ -15,6 +15,7 @@ OUT = os.path.join(BASE, "data", "observatorios.json")
 CAPAS = os.path.join(BASE, "data", "capas")
 os.makedirs(CAPAS, exist_ok=True)
 GH = "https://josehino.github.io"
+GHA = "https://ammaconsulting.github.io"  # observatorios trasladados a AMMA
 UA = {"User-Agent": "Mozilla/5.0"}
 
 
@@ -40,7 +41,7 @@ def kpi(etiqueta, valor, unidad="", periodo="", decimales=0):
 
 # ---------------------------------------------------------------- lectores
 def dti():
-    d = objeto_js(f"{GH}/dashboard-dti-marbella/data.js", "=")
+    d = objeto_js(f"{GHA}/dashboard-dti-marbella/data.js", "=")
     t = d["turismo"]
     out = []
     y, v = ultimo(t["viajeros"]["years"], t["viajeros"]["total"]); out.append(kpi("Viajeros alojados", v, "", y))
@@ -51,12 +52,12 @@ def dti():
     y, v = ultimo(d["seguridad"]["tasa"]["years"], d["seguridad"]["tasa"]["valor"]); out.append(kpi("Tasa de criminalidad", v, "‰", y, 1))
     y, v = ultimo(d["residuos"]["years"], d["residuos"]["pct_reciclado"]); out.append(kpi("Residuos reciclados", v, "%", y, 1))
     y, v = ultimo(d["deportes"]["years"], d["deportes"]["total"]); out.append(kpi("Eventos deportivos", v, "", y))
-    return {"nombre": "Dashboard DTI", "url": f"{GH}/dashboard-dti-marbella/", "kpis": out}
+    return {"nombre": "Dashboard DTI", "url": f"{GHA}/dashboard-dti-marbella/", "kpis": out}
 
 
 def turismo():
     # datos[tipo de alojamiento][Viajeros|Pernoctaciones][pais] = serie mensual
-    d = json.loads(texto(f"{GH}/observatorio-turistico-marbella/data/paises_marbella.json"))
+    d = json.loads(texto(f"{GHA}/observatorio-turistico-marbella/data/paises_marbella.json"))
     meses, datos = d["meses"], d["datos"]
     out = []
     for medida, etiqueta in (("Viajeros", "Viajeros (último mes)"), ("Pernoctaciones", "Pernoctaciones (último mes)")):
@@ -68,12 +69,12 @@ def turismo():
         pares = [(m, v) for m, v in zip(meses, total) if v]
         if pares:
             out.append(kpi(etiqueta, pares[-1][1], "", pares[-1][0]))
-    return {"nombre": "Observatorio Turístico", "url": f"{GH}/observatorio-turistico-marbella/", "kpis": out}
+    return {"nombre": "Observatorio Turístico", "url": f"{GHA}/observatorio-turistico-marbella/", "kpis": out}
 
 
 def trafico():
     # datasets[nombre]["series"]["Marbella"][anio][columna]
-    d = json.loads(texto(f"{GH}/observatorio-trafico-marbella/trafico_marbella.json"))
+    d = json.loads(texto(f"{GHA}/observatorio-trafico-marbella/trafico_marbella.json"))
     out = []
     for ds_nombre, buscar, etiqueta in (("general", "Parque Total", "Parque de vehículos"),
                                         ("general", "Censo Conductores", "Conductores"),
@@ -84,19 +85,19 @@ def trafico():
         pares = [(a, serie[a].get(col)) for a in sorted(serie) if col and serie[a].get(col) not in (None, "")]
         if pares:
             out.append(kpi(etiqueta, pares[-1][1], "", pares[-1][0]))
-    return {"nombre": "Observatorio de Tráfico", "url": f"{GH}/observatorio-trafico-marbella/", "kpis": out}
+    return {"nombre": "Observatorio de Tráfico", "url": f"{GHA}/observatorio-trafico-marbella/", "kpis": out}
 
 
 def residuos():
-    d = objeto_js(f"{GH}/observatorio-residuos-marbella/data/data.js", "=")
+    d = objeto_js(f"{GHA}/observatorio-residuos-marbella/data/data.js", "=")
     out = []
     j = d.get("junta") or {}
     y, v = ultimo(j.get("x", []), j.get("v", [])); out.append(kpi("Residuos por habitante", v, "kg/hab·año", y, 1))
-    return {"nombre": "Observatorio de Residuos", "url": f"{GH}/observatorio-residuos-marbella/", "kpis": out}
+    return {"nombre": "Observatorio de Residuos", "url": f"{GHA}/observatorio-residuos-marbella/", "kpis": out}
 
 
 def ambiental():
-    d = objeto_js(f"{GH}/observatorio-ambiental-marbella/data.js", "const OBS =")
+    d = objeto_js(f"{GHA}/observatorio-ambiental-marbella/data.js", "const OBS =")
     fechas, zonas, units = d["fechas"], d["zonas"], d["units"]
     muni = zonas.index("Municipio")
     out = []
@@ -106,7 +107,7 @@ def ambiental():
         if regs:
             r = regs[-1]
             out.append(kpi(etiqueta, r[3], {"tempsup": "°C"}.get(ind, units.get(ind, "")), fechas[r[0]][:7], dec))
-    return {"nombre": "Observatorio Ambiental", "url": f"{GH}/observatorio-ambiental-marbella/", "kpis": out}
+    return {"nombre": "Observatorio Ambiental", "url": f"{GHA}/observatorio-ambiental-marbella/", "kpis": out}
 
 
 def vut():
