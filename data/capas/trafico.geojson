@@ -1,1 +1,1 @@
-{"type":"FeatureCollection","actualizado":"2026-11-27T20:12Z","features":[]}
+{"type":"FeatureCollection","actualizado":"2026-11-28T11:32Z","features":[{"type":"Feature","geometry":{"type":"Point","coordinates":[-4.943015,36.50706]},"properties":{"tipo":"Vehículo detenido","via":"A-7176","km":"1.249","municipio":"Marbella","gravedad":1,"desde":"2026-11-28T12:29:59.000+01:00","punto":true}}]}
